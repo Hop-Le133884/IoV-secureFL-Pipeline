@@ -13,3 +13,4 @@ data/interim/*
 data/raw/*
 data/processed/*
 data/interim/*
+.venv/
