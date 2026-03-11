@@ -8,7 +8,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # Define the Flower Client
-class IoVClient(fl.client.NumpyClient):
+class IoVClient(fl.client.NumPyClient):
     def __init__(self, model, X_train, y_train, X_test, y_test):
         self.model = model
         self.X_train = X_train
@@ -33,13 +33,13 @@ class IoVClient(fl.client.NumpyClient):
         return self.get_parameters(config), len(self.X_train), {}
     
     # Evaluate the global model on the vehicle's local tet data
-    def evaluate(self, parameters, cofig):
+    def evaluate(self, parameters, config):
         print("Vehicle: Evaluating model...")
-        y_pred = self.model.predict(self.X_Test)
+        y_pred = self.model.predict(self.X_test)
         f1 = f1_score(self.y_test, y_pred, average='macro', zero_division=0)
 
         # Return the loss (dummy value here), number of test points, and the F1 score
-        return 0.0, len(self.X_Test), {"macro_f1": f1}
+        return 0.0, len(self.X_test), {"macro_f1": f1}
     
 
 def main():
