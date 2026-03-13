@@ -5,8 +5,8 @@ import pandas as pd
 import pickle
 import argparse
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import f1_score
-from sklearn.model_selection import train_test_split
+from sklearn.metrics import f1_score,log_loss
+from sklearn.model_selection import train_test_split, StratifiedKFold
 import warnings
 
 warnings.filterwarnings('ignore')
@@ -50,7 +50,10 @@ class IoVClient(fl.client.NumPyClient):
         y_pred = self.model.predict(self.X_test)
         f1 = f1_score(self.y_test, y_pred, average='macro', zero_division=0)
 
-        # Return the loss, number of test points, and the F1 score
+        # Log Loss
+        #y_prob = self.model.predict_proba(self.X_test)[:, 1]
+        #logLoss = log_loss(self.y_test, y_prob)
+        # Return 3 arguments , loss, number of test points, and the F1 score
         return 0.0, len(self.X_test), {"macro_f1": f1}
     
 def load_partition(node_id, num_nodes):
@@ -60,22 +63,25 @@ def load_partition(node_id, num_nodes):
     csv_path = "./data/processed/df_federated_5x.csv"
     df = pd.read_csv(csv_path)
 
+    # checking 'label' binary
+    if 'label' not in df.columns:
+        df['label'] = (df['specific_class'] != 'BENIGN').astype(int)
+
     # shuffle the dataset using fix seed so all vehicles see the same initial shuffle
     df = df.sample(frac=1, random_state=42).reset_index(drop=True)
 
     # split the data into chunks based on the number of vehicles
-    #partitions = np.array_split(df, num_nodes)
-    my_partition = df.iloc[node_id::num_nodes]
+    skf = StratifiedKFold(n_splits=num_nodes, shuffle=True, random_state=42)
+    folds = list(skf.split(df, df['label']))
+    _, vehicle_indices = folds[node_id]
+    my_partition = df.iloc[vehicle_indices].copy()
 
     # extract features (DATA_0 to DATA_7) and the specific_class col
     feature_cols = ['DATA_0', 'DATA_1', 'DATA_2', 'DATA_3', 'DATA_4', 'DATA_5', 'DATA_6', 'DATA_7']
-    X = my_partition[feature_cols]
-    y = my_partition['specific_class']
+    X  = my_partition[feature_cols]
+    y = my_partition['label']
 
-    # split this vehicles's private data into Train and Test sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-    return X_train, X_test, y_train, y_test
+    return train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
 
 def main():
@@ -90,8 +96,8 @@ def main():
     # Load this specific vehicle's slice of the data
     X_train, X_test, y_train, y_test = load_partition(args.node_id, args.num_nodes)
     model = RandomForestClassifier(
-        n_estimators=10,
-        max_depth=7,
+        n_estimators=20,
+        max_depth=8,
         random_state=42
     )
 

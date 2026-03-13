@@ -4,15 +4,12 @@ import pickle
 import numpy as np
 from flwr.common import parameters_to_ndarrays, ndarrays_to_parameters
 
-# Define how the server should average the F1 scores from the vehicles
+# To calculate the avrage f1 score
 def weighted_average(metrics):
-    # Multiply each F1 score by the number of test examples the vehicle had
-    weighted_f1 = [num_examples * m["macro_f1"] for num_examples, m in metrics]
-    # Sum up all the examples from all vehicles
-    total_examples = sum(num_examples for num_examples, m in metrics)
-
-    # Return the weighted average F1 score
-    return {"macro_f1": sum(weighted_f1) / total_examples}
+    # multiply all f1 scores
+    macro_f1s = [num_examples * m['macro_f1'] for num_examples, m in metrics]
+    examples = [num_examples for num_examples, _ in metrics]
+    return {"macro_f1": sum(macro_f1s) / sum(examples)}
 
 # Build the custom tree concatenation strategy
 class RandomForestStrategy(fl.server.strategy.FedAvg):
@@ -55,8 +52,8 @@ class RandomForestStrategy(fl.server.strategy.FedAvg):
         global_parameters = ndarrays_to_parameters([np.array(global_model_bytes)])
 
         # SAVING THE OPTIMAL MODEL
-        print(f"SERVER: Saving Global Model for Round {server_round} to disk..")
-        with open("./model/federated_global_rf.pkl", "wb") as f:
+        print(f"SERVER: Saving Global Binary Model for Round {server_round} to disk...")
+        with open("./models/federated_global_rf.pkl", "wb") as f:
             pickle.dump(global_model, f)
 
         # Return the new global parameters to be sent back to the vehicles
@@ -69,16 +66,16 @@ def main():
     strategy = RandomForestStrategy(
         fraction_fit=1.0,           # Sample 100% of available clients for training
         fraction_evaluate=1.0,      # Sample 100% of available clients for evaluating
-        min_fit_clients=2,          # need at least 2 vehicles connected to start training
-        min_evaluate_clients=2,     # need at least 2 vehicles to evaluate
-        min_available_clients=2,    # wait until 2 vehicles check in
+        min_fit_clients=5,          # need at least 2 vehicles connected to start training
+        min_evaluate_clients=5,     # need at least 2 vehicles to evaluate
+        min_available_clients=5,    # wait until 2 vehicles check in
         evaluate_metrics_aggregation_fn=weighted_average, # call weighted_average for macro f1 score average
     )
 
     # Start the server on port 8080
     fl.server.start_server(
         server_address="0.0.0.0:8080",
-        config=fl.server.ServerConfig(num_rounds=3), # run 3 global rounds of training
+        config=fl.server.ServerConfig(num_rounds=1), # run 3 global rounds of training but not improve, reduce to 1
         strategy=strategy,
     )
 
