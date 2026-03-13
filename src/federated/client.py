@@ -60,14 +60,14 @@ def load_partition(node_id, num_nodes):
     csv_path = "./data/processed/df_federated_5x.csv"
     df = pd.read_csv(csv_path)
 
-    # shuffle the dataset using fix seed so all vehicles see the same initual shuffle
+    # shuffle the dataset using fix seed so all vehicles see the same initial shuffle
     df = df.sample(frac=1, random_state=42).reset_index(drop=True)
 
     # split the data into chunks based on the number of vehicles
     #partitions = np.array_split(df, num_nodes)
     my_partition = df.iloc[node_id::num_nodes]
 
-    # extract features (DATA_0 to DATA_7) and the label (specific_class)
+    # extract features (DATA_0 to DATA_7) and the specific_class col
     feature_cols = ['DATA_0', 'DATA_1', 'DATA_2', 'DATA_3', 'DATA_4', 'DATA_5', 'DATA_6', 'DATA_7']
     X = my_partition[feature_cols]
     y = my_partition['specific_class']
