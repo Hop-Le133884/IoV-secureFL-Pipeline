@@ -56,7 +56,7 @@ class RandomForestStrategy(fl.server.strategy.FedAvg):
 
         # SAVING THE OPTIMAL MODEL
         print(f"SERVER: Saving Global Model for Round {server_round} to disk..")
-        with open("../model/federated_global_rf.pkl", "wb") as f:
+        with open("./model/federated_global_rf.pkl", "wb") as f:
             pickle.dump(global_model, f)
 
         # Return the new global parameters to be sent back to the vehicles
