@@ -54,6 +54,11 @@ class RandomForestStrategy(fl.server.strategy.FedAvg):
         # Pack it back into Flower's network format
         global_parameters = ndarrays_to_parameters([np.array(global_model_bytes)])
 
+        # SAVING THE OPTIMAL MODEL
+        print(f"SERVER: Saving Global Model for Round {server_round} to disk..")
+        with open("../model/federated_global_rf.pkl", "wb") as f:
+            pickle.dump(global_model, f)
+
         # Return the new global parameters to be sent back to the vehicles
         return global_parameters, {}
 

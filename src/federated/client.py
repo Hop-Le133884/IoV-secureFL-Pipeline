@@ -1,9 +1,12 @@
 # client.py
 import flwr as fl
 import numpy as np
+import pandas as pd
 import pickle
+import argparse
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import f1_score
+from sklearn.model_selection import train_test_split
 import warnings
 
 warnings.filterwarnings('ignore')
@@ -23,43 +26,69 @@ class IoVClient(fl.client.NumPyClient):
         # Then wrap it in a numpy array so Flower can send it over the network
         return [np.array(pickle.dumps(self.model))]
     
-    # Unfreeze the model from Server send back to Client
+    # Unfreeze the global model from Server send back to Client
     def set_parameters(self, parameters):
-        # When the server sends the glued-together global model back, unpack it!
+        # unpack the global model
         if parameters and len(parameters) > 0:
             self.model = pickle.loads(parameters[0].tobytes())
 
     # Train the model locally on the vehicle's private data
     def fit(self, parameters, config):
-        print("Vehicle: Starting local training...")
+        print(f"Vehicle: Starting local training on {len(self.X_train)} real-world traffics...")
         self.model.fit(self.X_train, self.y_train)
 
         # Return the updated parameters, the number of data points, and any extra info
         return self.get_parameters(config), len(self.X_train), {}
     
-    # Evaluate the global model on the vehicle's local test data
+    # Evaluate the global model on the vehicle's local test dataset
     def evaluate(self, parameters, config):
         print("Vehicle: Evaluating model...")
         # apply the global model from server sent to
         self.set_parameters(parameters)
 
-        # Test it against local hidden data (the test set)
+        # Test it against local hidden data (the test dataset)
         y_pred = self.model.predict(self.X_test)
         f1 = f1_score(self.y_test, y_pred, average='macro', zero_division=0)
 
         # Return the loss, number of test points, and the F1 score
         return 0.0, len(self.X_test), {"macro_f1": f1}
     
+def load_partition(node_id, num_nodes):
+    print(f"Loading real IoV data for Vehicle Node {node_id}...")
+
+    # Load dataset
+    csv_path = "./data/processed/df_federated_5x.csv"
+    df = pd.read_csv(csv_path)
+
+    # shuffle the dataset using fix seed so all vehicles see the same initual shuffle
+    df = df.sample(frac=1, random_state=42).reset_index(drop=True)
+
+    # split the data into chunks based on the number of vehicles
+    #partitions = np.array_split(df, num_nodes)
+    my_partition = df.iloc[node_id::num_nodes]
+
+    # extract features (DATA_0 to DATA_7) and the label (specific_class)
+    feature_cols = ['DATA_0', 'DATA_1', 'DATA_2', 'DATA_3', 'DATA_4', 'DATA_5', 'DATA_6', 'DATA_7']
+    X = my_partition[feature_cols]
+    y = my_partition['specific_class']
+
+    # split this vehicles's private data into Train and Test sets
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    return X_train, X_test, y_train, y_test
+
 
 def main():
-    print("Initializing Vehicle Client...")
+    # Setup argument parser so we can assign Vehicle IDs from the terminal
+    parser = argparse.ArgumentParser(description="Flower Client")
+    parser.add_argument("--node-id", type=int, required=True, help="Partition ID (0 to 4)")
+    parser.add_argument("--num-nodes", type=int, default=5, help="Total number of vehicles")
+    args = parser.parse_args()
 
-    # PLACEHOLDER: Load local vehicle data here
-    # IN a real simulation, we would split your df_master in 
-    # 01_reproducing_exploration_baseline jupyter notebooks into partitions
-    X_train, X_test = np.random.rand(100, 9), np.random.rand(20, 9)
-    y_train, y_test = np.random.randint(0, 2, 100), np.random.randint(0, 2, 20)
+    print(f"Initializing Vehicle Client {args.node_id}...")
 
+    # Load this specific vehicle's slice of the data
+    X_train, X_test, y_train, y_test = load_partition(args.node_id, args.num_nodes)
     model = RandomForestClassifier(
         n_estimators=10,
         max_depth=7,
