@@ -35,6 +35,7 @@ class IoVClient(fl.client.NumPyClient):
     # Train the model locally on the vehicle's private data
     def fit(self, parameters, config):
         print(f"Vehicle: Starting local training on {len(self.X_train)} real-world traffics...")
+        self.set_parameters(parameters)
         self.model.fit(self.X_train, self.y_train)
 
         # Return the updated parameters, the number of data points, and any extra info
