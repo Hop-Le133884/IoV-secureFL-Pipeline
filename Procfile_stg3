@@ -1,6 +1,0 @@
-tracker:   python src/federated/tracker.py > logs/tracker.log 2>&1
-client0:   python src/federated/client_stage2.py --node-id 0 > logs/client-0-stage2.log 2>&1
-client1:   python src/federated/client_stage2.py --node-id 1 > logs/client-1-stage2.log 2>&1
-client2:   python src/federated/client_stage2.py --node-id 2 > logs/client-2-stage2.log 2>&1
-client3:   python src/federated/client_stage2.py --node-id 3 > logs/client-3-stage2.log 2>&1
-client4:   python src/federated/client_stage2.py --node-id 4 > logs/client-4-stage2.log 2>&1

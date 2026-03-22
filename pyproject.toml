@@ -3,7 +3,6 @@ name = "iov-securefl-pipeline"
 version = "0.1.0"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "flwr[simulation]==1.26.1",
     "lightgbm>=4.6.0",
     "numpy>=2.0.0,<2.1.0",
     "pandas>=2.2.0",
@@ -17,6 +16,10 @@ dependencies = [
     "kafka-python-ng>=2.2.3",
     "honcho>=2.0.0",
     "jupyter>=1.0.0",
+    "xgboost>=3.2.0",
+    "shap>=0.51.0",
+    "omegaconf>=2.3.0",
+    "nvflare>=2.7.1",
 ]
 
 [[tool.uv.index]]

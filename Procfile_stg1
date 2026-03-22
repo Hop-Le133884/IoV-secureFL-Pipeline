@@ -1,7 +1,0 @@
-# This files help to run all .py in one commands, and save logs to /logs/
-Stage-1-server:   python src/federated/server.py > logs/server_stage1.log 2>&1
-Stage-1-client0:  python src/federated/client.py --node-id 0 > logs/client_stage1-0.log 2>&1
-Stage-1-client1:  python src/federated/client.py --node-id 1 > logs/client_stage1-1.log 2>&1
-Stage-1-client2:  python src/federated/client.py --node-id 2 > logs/client_stage1-2.log 2>&1
-Stage-1-client3:  python src/federated/client.py --node-id 3 > logs/client_stage1-3.log 2>&1
-Stage-1-client4:  python src/federated/client.py --node-id 4 > logs/client_stage1-4.log 2>&1
