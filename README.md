@@ -1,173 +1,169 @@
-# IoV-secureFL-Pipeline: Stage 1
+# IoV-secureFL-Pipeline
+## Secure Federated Learning Pipeline for Unique-Signature Intrusion Detection in IoV Networks
 
-**Secure Federated Learning Pipeline for Unique-Signature Intrusion Detection in IoV Networks**
+## Overview
+A production-ready machine learning pipeline featuring a novel Federated Double Random Forest (Double RF) architecture. This project implements a comprehensive security analysis pipeline for Internet of Vehicles (IoV) networks. By leveraging a two-stage federated ensemble method, vehicles can collaboratively train highly accurate Intrusion Detection Systems (IDS) without ever centralizing sensitive Controller Area Network (CAN) bus logs. 
 
-A cleaned, production-ready implementation of Stage 1, featuring successfully validated double Random Forest experiments on the CICIoV2024 datasets. This stage serves as the foundational baseline and prerequisite for Stage 2, which extends the architecture with distributed federated learning using NVIDIA FLARE and XGBoost.
+- **PHASE 1:** Centralized Baseline & Double RF Prototyping
+- **PHASE 2:** Privacy-Preserving Federated Double Random Forest architecture by NVIDIA FLARE and XGBoost 
+- **PHASE 3:** AWS EMR + S3
 
----
+# Project Tree
 
-## 📋 Overview
-
-This project implements a comprehensive security analysis pipeline for Internet of Vehicles (IoV) networks using federated learning techniques. **Stage 1** focuses on establishing a robust baseline through centralized machine learning experiments using ensemble methods (specifically Double Random Forest) on real-world vehicular network traffic data.
-
-### Key Accomplishments (Stage 1)
-
-✅ **Clean, validated codebase** - Production-ready implementation with organized structure  
-✅ **Double Random Forest experiments** - Successfully executed and benchmarked on CICIoV2024 datasets  
-✅ **Multi-site vehicle data processing** - Integrated data from 5 vehicle sites with proper train/test splits  
-✅ **Preprocessed datasets** - Cleaned and normalized benign and attack traffic data  
-✅ **Baseline establishment** - Metrics and results for comparison with Stage 2 federated approach  
-
----
-
-## 🎯 Stage 1: Baseline & Prerequisites
-
-Stage 1 establishes the foundational model architecture and dataset baseline:
-
-- **Model Architecture**: Double Random Forest ensemble (centralized training)
-- **Dataset**: CICIoV2024 (Intrusion Detection for IoV networks)
-- **Attack Classes**: DoS, Spoofing (GAS, RPM, SPEED, STEERING_WHEEL), Benign traffic
-- **Training Data**: 5 vehicle site datasets for comprehensive evaluation
-- **Metrics**: Classification performance benchmarks (accuracy, precision, recall, F1-score)
-
-This stage validates that the machine learning approach is sound before distributing the training process across federated nodes in Stage 2.
-
----
-
-## 📁 Project Structure
-
-```
-IoV-secureFL-Pipeline/
-├── data/
-│   ├── raw/                          # Original dataset files
-│   │   ├── decimal_benign.csv
-│   │   ├── decimal_DoS.csv
-│   │   ├── decimal_spoofing-*.csv   # Various spoofing attack types
-│   │   ├── data_description.csv
-│   │   └── dataset_info.md
-│   └── processed/                    # Cleaned & normalized datasets
-│       ├── df_federated_5x.csv       # Combined federated format
-│       ├── IoV_rawAllClasses.csv
-│       └── vehicle_site-*.csv        # Individual site training data (5 sites)
-├── notebooks/
-│   └── 01_reproducing_exploration_baseline.ipynb  # Experiment notebooks
-├── src/
-│   └── federated/
-│       └── meta_model.py             # Model implementations
+```bash
+(iov-securefl-pipeline) hople@hople-zenux:~/working_folder/IoV-secureFL-Pipeline$ tree
+.
+├── =2.1.0
+├── data
+│   ├── CICIoV2024.csv
+│   ├── processed
+│   │   ├── df_federated_5x.csv
+│   │   └── IoV_rawAllClasses.csv
+│   └── raw
+│       ├── data_description.csv
+│       ├── dataset_info.md
+│       ├── decimal_benign.csv
+│       ├── decimal_DoS.csv
+│       ├── decimal_spoofing-GAS.csv
+│       ├── decimal_spoofing-RPM.csv
+│       ├── decimal_spoofing-SPEED.csv
+│       └── decimal_spoofing-STEERING_WHEEL.csv
+├── data_split_gen.sh
+├── jobs
+│   └── random_forest_base
+│       ├── app
+│       │   ├── config
+│       │   │   ├── config_fed_client.json
+│       │   │   └── config_fed_server.json
+│       │   └── custom
+│       │       ├── iov_data_loader.py
+│       │       └── iov_executor.py
+│       └── meta.json
+├── jobs_gen.sh
+├── LICENSE
 ├── main.py
-├── pyproject.toml                    # Project dependencies
-└── README.md
+├── notebooks
+│   └── 01_reproducing_exploration_baseline.ipynb
+├── pyproject.toml
+├── README.md
+├── run_experiment_simulator.sh
+├── src
+│   └── federated
+│       └── meta_model.py
+├── testCUDA_imports.py
+├── utils
+│   ├── model_validation.py
+│   ├── prepare_data_split.py
+│   └── prepare_job_config.py
+└── uv.lock
+
+13 directories, 31 files
 ```
 
 ---
 
-## 📊 Datasets
+# 🏗️ Phase 1: Centralized Baseline & Double RF Prototyping
 
-**CICIoV2024 - Intrusion Detection for IoV Networks**
+In this initial phase, we establish a performance baseline using a centralized machine learning approach. The goal is to validate the Double Random Forest (Double RF) logic—a two-stage ensemble method—before transitioning to a distributed federated environment.
 
-### Raw Data
-- `decimal_benign.csv` - Benign vehicular network traffic
-- `decimal_DoS.csv` - Denial of Service attacks
-- `decimal_spoofing-GAS.csv` - Gas pedal spoofing attacks
-- `decimal_spoofing-RPM.csv` - RPM gauge spoofing
-- `decimal_spoofing-SPEED.csv` - Speed/odometer spoofing
-- `decimal_spoofing-STEERING_WHEEL.csv` - Steering wheel spoofing
+## Description
 
-### Processed Data
-- **Multi-site training sets**: `vehicle_site-1_train.csv` through `vehicle_site-5_train.csv`
-- **Federated format**: `df_federated_5x.csv` (aligned for distributed training)
-- **Consolidated**: `IoV_rawAllClasses.csv` (all samples with labels)
+Phase 1 focuses on data exploration, preprocessing, and the implementation of a sequential **Expert-Master** model architecture. By training a binary classifier (Stage 1) to identify anomalies and passing its probability scores to a multi-class classifier (Stage 2), we enhance the model's ability to distinguish between complex, physically correlated attack vectors like RPM and Speed spoofing.
 
----
+## Key Components
 
-## 🚀 Getting Started
+- **Dataset:** Local instance of `CICIoV2024.csv`
+- **Architecture:** Sequential Double Random Forest (XGBoost)
+- **Environment:** Research-oriented Jupyter Notebooks
+- **Objective:** Maximize detection accuracy and establish baseline metrics (Accuracy, F1-Score, LogLoss) for comparison with later phases.
 
-### Requirements
+## Instructions
 
-- Python 3.12+
-- pip or UV package manager
+### 1. Prepare the Environment
 
-### Installation
+Ensure you have installed the core data science dependencies:
 
-1. **Clone the repository**
-   ```bash
-   cd IoV-secureFL-Pipeline
-   ```
+```bash
+pip install lightgbm numpy pandas scikit-learn scipy seaborn matplotlib pyarrow tqdm cryptography kafka-python-ng honcho jupyter xgboost shap omegaconf nvflare
+```
 
-2. **Create and activate virtual environment**
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   ```
+### 2. Dataset Placement
 
-3. **Install dependencies**
-   ```bash
-   pip install -e .
-   ```
-   
-   Or with UV:
-   ```bash
-   uv pip install -e .
-   ```
+Ensure the raw dataset is available in the expected directory:
 
-### Dependencies
+```text
+./data/CICIoV2024.csv
+```
 
-Core libraries:
-- **Machine Learning**: scikit-learn, lightgbm, xgboost
-- **Data Processing**: pandas, numpy, scipy, pyarrow
-- **Visualization**: matplotlib, seaborn, shap
-- **Federated Learning**: nvflare
-- **Utilities**: omegaconf, tqdm, cryptography, kafka-python-ng, jupyter
+### 3. Launch the Research Notebook
 
----
-
-## 📈 Experiments
-
-### Stage 1: Double Random Forest Baseline
-
-Run the Stage 1 baseline experiments:
+Navigate to the notebooks directory and open the baseline experiment:
 
 ```bash
 jupyter notebook notebooks/01_reproducing_exploration_baseline.ipynb
 ```
 
-This notebook contains:
-- Data loading and preprocessing
-- Double Random Forest model training
-- Cross-validation experiments
-- Performance metric evaluation
-- Results visualization and analysis
+### 4. Execute the Experiment
+
+Within the notebook, follow the documented cells to:
+
+- **Load & Clean:** Preprocess CAN bus sensor data.
+- **Train Stage 1:** Build the Binary Expert to generate the `prob_ATTACK` feature.
+- **Train Stage 2:** Build the 6-Class Master model using the augmented feature set.
+- **Evaluate:** Generate the baseline confusion matrix and classification report.
 
 ---
 
-## 🔄 Stage 2: Federated Learning (Coming Next)
+# 🔄 Phase 2: Privacy-Preserving Federated Double Random Forest
 
-Stage 2 will extend this baseline to distributed federated learning:
+In this phase, the centralized logic from Phase 1 is transformed into a decentralized, privacy-preserving pipeline. Using NVIDIA FLARE as the orchestration engine, we distribute the training process across five simulated vehicle sites.
 
-- **Architecture**: NVIDIA FLARE-based federated learning
-- **Model**: XGBoost with federated aggregation
-- **Training**: Distributed across multiple virtual sites
-- **Goal**: Compare centralized (Stage 1) vs federated (Stage 2) performance
+## Description
 
-The results from Stage 1 serve as the critical performance baseline for Stage 2 validation.
+Phase 2 implements the Federated Double Random Forest (Double RF) architecture. The core innovation is the ability to achieve high-accuracy intrusion detection while ensuring that raw CAN bus data never leaves the vehicle's local environment. Only encrypted model weights (XGBoost trees) are communicated to the central server.
 
----
+## Key Components
 
-## 📝 License
+- **Orchestration:** NVIDIA FLARE (NVFlare) Simulator
+- **Engine:** Federated XGBoost with Bagging aggregation
+- **Communication Efficiency:** Full convergence in exactly two communication rounds (one for Binary Expert and one for Multi-Class Master)
+- **Privacy:** Local data remains isolated; the server only sees aggregated tree structures
 
-See [LICENSE](LICENSE) file for details.
+## Instructions
 
----
+### 1. Data Partitioning (Stratified Splitting)
 
-## 🔗 Related Work
+Before starting the federated process, the dataset must be split into isolated site-specific partitions. This script ensures each vehicle receives a balanced distribution of all attack classes:
 
-This project is based on research in secure federated learning for vehicular networks and intrusion detection systems. It extends prior work with a modern, production-ready implementation pipeline.
+```bash
+bash data_split_gen.sh ./data
+```
 
----
+### 2. Generate Federated Job Configurations
 
-## 📞 Notes
+Define global parameters for the federated run, such as number of trees per site, maximum depth, and data split paths:
 
-- **CUDA Support**: The pipeline is optimized for GPU acceleration. Use `testCUDA_imports.py` to verify CUDA availability.
-- **Configuration**: Project settings managed via `omegaconf` for easy experimentation.
-- **Kafka Integration**: Supports real-time vehicular data streaming via Kafka (infrastructure optional).
+```bash
+bash jobs_gen.sh ./data
+```
 
+### 3. Execute the Federated Simulator
+
+Launch the NVFlare Simulator to orchestrate the two-stage training. This process creates a workspace directory, spin up five virtual clients, and execute Stage 1 and Stage 2 sequentially:
+
+```bash
+# Clean previous artifacts and launch
+rm -rf workspace_iov_double_rf
+bash run_experiment_simulator.sh
+```
+
+### 4. Global Model Validation
+
+After the simulator finishes, final aggregated models (`xgboost_model_inner.json` and `xgboost_model_outer.json`) are stored on the server. Run validation utility against the unseen holdout set:
+
+```bash
+python utils/model_validation.py
+```
+# ☁️ Phase 3: Cloud Orchestration (AWS EMR + S3)
+COMING SOON....
+Note: This phase is currently in the architectural planning stage and represents the next milestone for the IoV-secureFL-Pipeline.
