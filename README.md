@@ -213,10 +213,35 @@ bash jobs_gen.sh ./data
 
 Launch the NVFlare Simulator to orchestrate the two-stage training. This process creates a workspace directory, spin up five virtual clients, and execute Stage 1 and Stage 2 sequentially:
 
+#### 3.a Execute the Federated Simulator without Differential Privacy
+
 ```bash
 # Clean previous artifacts and launch
 rm -rf workspace_iov_double_rf
 bash run_experiment_simulator.sh
+```
+
+#### 3.b Execute the Federated Simulator with Differential Privacy (custome input ε)
+
+***This will run almost an hour:*** runs each ε 5 times, seeds 42, 123, 456, 789, 1000, computes mean ± std for F1 and Accuracy, saves to CSV with per-seed columns + averaged stats.
+
+Pipeline per run: jobs_gen.sh → run_experiment_simulator.sh → model_validation.py
+
+***output:*** The real empirical tradeoff curve at /reports
+epsilon, sigma, f1_seed_42, f1_seed_123, ..., f1_mean, f1_std, acc_seed_42, ..., acc_mean, acc_std
+
+
+ε=∞  | → (baseline)
+ε=100| →  (tiny noise, near-baseline)
+ε=90 | →  (small noise, near-baseline)
+ε=80 | →  (low noise, near-baseline)
+ε=50 | → (moderate drop)
+ε=20 | → significant drop
+ε=1  | → collapse
+
+```bash
+# 
+python utils/generate_dp_report.py --epsilon "inf; 100; 90; 80; 50; 20; 1"
 ```
 
 ### 4. Global Model Validation
@@ -226,6 +251,15 @@ After the simulator finishes, final aggregated models (`xgboost_model_inner.json
 ```bash
 python utils/model_validation.py
 ```
+
+### 4. Global Model Validation with differential privacy
+
+strong privacy (low ε) requires more noise to mask individual contributions, noise overwhelms leaf signal (σ=24.22 vs leaf values ~0.77 std at ε=1)
+
+```bash
+python utils/generate_dp_report.py
+```
+
 # ☁️ Phase 3: Cloud Orchestration (AWS EMR + S3)
 COMING SOON....
 Note: This phase is currently in the architectural planning stage and represents the next milestone for the IoV-secureFL-Pipeline.

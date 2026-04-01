@@ -1,11 +1,20 @@
+# cache files
 __pycache__/
 *.pyc
 *.pyo
 *.egg-info/
 .DS_Store
-*.log
-data/*
+
+# project files
 models/*
+workspace_iov_double_rf/
+jobs/iov_double_rf_5_sites/
+
+# data files
 data/raw/*
 data/processed/*
+data/IoV/*
+
+# virtual environment
 .venv/
+uv.lock

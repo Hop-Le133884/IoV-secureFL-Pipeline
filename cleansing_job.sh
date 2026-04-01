@@ -29,6 +29,7 @@ TARGETS=(
     "data/IoV"
     "workspace_iov_double_rf"
     "jobs/iov_double_rf_5_sites"
+    "reports/"
 )
 # ── Run ───────────────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

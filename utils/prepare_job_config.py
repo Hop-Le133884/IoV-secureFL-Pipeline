@@ -17,6 +17,10 @@ def job_config_args_parser():
     parser.add_argument("--max_depth", type=int, default=8, help="Maximum depth of a tree")
     parser.add_argument("--local_subsample", type=float, default=0.8, help="Subsample rate")
     parser.add_argument("--nthread", type=int, default=4, help="nthread for xgboost")
+    parser.add_argument("--dp_epsilon", type=float, default=None, help="DP privacy budget ε (None = no DP)")
+    parser.add_argument("--dp_delta", type=float, default=1e-5, help="DP failure probability δ")
+    parser.add_argument("--dp_clip_bound", type=float, default=5.0, help="Leaf value clipping bound C (L∞ sensitivity)")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed for XGBoost training and DP noise")
     return parser
 
 def _read_json(filename):
@@ -105,6 +109,10 @@ def _update_client_config(config: dict, args, site_name: str):
     exec_args["max_depth"] = args.max_depth
     exec_args["local_subsample"] = args.local_subsample
     exec_args["nthread"] = args.nthread
+    exec_args["dp_epsilon"] = args.dp_epsilon
+    exec_args["dp_delta"] = args.dp_delta
+    exec_args["dp_clip_bound"] = args.dp_clip_bound
+    exec_args["seed"] = args.seed
     
     config["components"][0]["path"] = "iov_data_loader.IoVDataLoader"
     data_split_path = os.path.join(args.data_split_root, f"data_{site_name}.json")
