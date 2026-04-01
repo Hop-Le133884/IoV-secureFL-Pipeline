@@ -79,12 +79,74 @@ Phase 1 focuses on data exploration, preprocessing, and the implementation of a 
 
 ## Instructions
 
-### 1. Prepare the Environment
+Before starting, make sure you have the following installed on your system:
 
-Ensure you have installed the core data science dependencies:
+| Requirement | Version | Check |
+|-------------|---------|-------|
+| Python | 3.12+ | `python3 --version` |
+| uv | latest | `uv --version` |
+
+### Step 2 — Install uv (Python Package Manager)
+
+This project uses **uv** for fast, reproducible dependency management.
+
+**Linux / macOS**:
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+**Windows (PowerShell)**:
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.sh | iex"
+```
+
+After installation, reload your shell:
+```bash
+source ~/.bashrc   # or source ~/.zshrc
+```
+
+Verify:
+```bash
+uv --version
+```
+
+---
+
+### Step 3 — Create the Root Virtual Environment
+
+From the project root, create and activate a virtual environment with Python 3.12:
 
 ```bash
-pip install lightgbm numpy pandas scikit-learn scipy seaborn matplotlib pyarrow tqdm cryptography kafka-python-ng honcho jupyter xgboost shap omegaconf nvflare
+uv venv --python 3.12
+```
+
+Activate it:
+
+```bash
+# Linux / macOS
+source .venv/bin/activate
+
+# Windows
+.venv\Scripts\activate
+```
+
+Install root dependencies (Flower, matplotlib, numpy, pandas):
+
+```bash
+uv sync
+```
+
+### 1. Patching nvflare xgboost
+
+Ensure you run this after steps above. Because NVflare XGBoost imports all three
+recipe classes including XGBHorizontalRecipe (histogram). That module imports
+TBAnalyticsReceiver -> torch.utils.tensorboard -> tensorboard, even though
+this project only uses tree-based bagging and never touches TensorBoard.
+
+torch and tensorboard is heavy python packages
+
+```bash
+python utils/patch_nvflare.py
 ```
 
 ### 2. Dataset Placement
