@@ -1,25 +1,34 @@
 #!/usr/bin/env bash
-# Update this path to your specific IoV CSV location
-DATASET_PATH="${1}/CICIoV2024.csv"
-OUTPUT_PATH="${1}/IoV/data_splits"
+# Generate FL data splits from the 5x-capped federated dataset.
+#
+# Usage:  bash data_split_gen.sh ./data
+#
+# Inputs  (inside DATA_DIR):
+#   processed/df_federated_5x.csv   — 5x-capped training data (built in notebook)
+#
+# Outputs (inside DATA_DIR):
+#   processed/vehicle_site-N_train.csv  — one CSV per FL client site
+#   processed/df_server_test.csv        — unique-signature server test set
+#   IoV/data_splits/data_site-N.json    — JSON pointer files for the data loader
 
-if [ ! -f "${DATASET_PATH}" ]
-then
-    echo "Error: CICIoV2024.csv not found in ${DATASET_PATH}"
+DATA_DIR=$(realpath "${1:-./data}")
+FEDERATED_DATA="${DATA_DIR}/processed/df_federated_5x.csv"
+OUTPUT_PATH="${DATA_DIR}/IoV/data_splits"
+PROCESSED_DIR="${DATA_DIR}/processed"
+
+if [ ! -f "${FEDERATED_DATA}" ]; then
+    echo "Error: ${FEDERATED_DATA} not found."
+    echo "Run the notebook 01_reproducing_exploration_baseline.ipynb first to generate it."
     exit 1
 fi
 
-echo "Generating Stratified IoV data splits from ${DATASET_PATH}..."
+echo "Generating FL data splits from ${FEDERATED_DATA} ..."
 
-# We focus on 5 sites for your research
-for site_num in 5; 
-do  
-    # Stratification ensures each vehicle sees all 6 attack classes
-    python3 utils/prepare_data_split.py \
-    --data_path "${DATASET_PATH}" \
-    --site_num ${site_num} \
-    --size_valid 140822 \
-    --out_path "${OUTPUT_PATH}"
-done
+python3 utils/prepare_data_split.py \
+    --federated_data_path "${FEDERATED_DATA}" \
+    --site_num 5 \
+    --out_path "${OUTPUT_PATH}" \
+    --processed_dir "${PROCESSED_DIR}"
 
-echo "Stratified splits generated in ${OUTPUT_PATH}"
+echo "Splits generated in ${OUTPUT_PATH}"
+echo "Server test set: ${PROCESSED_DIR}/df_server_test.csv"
