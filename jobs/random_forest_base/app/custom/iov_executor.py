@@ -138,9 +138,12 @@ class DoubleRFExecutor(Executor):
         elif task_name == "train_outer":
             self.log_info(fl_ctx, "Stage 2: Outer RF (6-Class)")
 
-            project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", ".."))
+            # Derive workspace root from this file's location:
+            # {workspace}/{site}/simulate_job/app_{site}/custom/iov_executor.py
+            # 4 levels up from dirname(__file__) → workspace root
+            workspace_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
             inner_model_path = os.path.join(
-                project_root, "workspace_iov_double_rf", "server", "simulate_job", "app_server", "xgboost_model_inner.json"
+                workspace_root, "server", "simulate_job", "app_server", "xgboost_model_inner.json"
             )
             global_inner_model = xgb.Booster()
             global_inner_model.load_model(inner_model_path)
