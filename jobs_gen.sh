@@ -11,6 +11,7 @@ DP_EPSILON="${DP_EPSILON:-}"        # privacy budget ε — empty = no DP
 DP_DELTA="${DP_DELTA:-1e-5}"        # failure probability δ
 DP_CLIP_BOUND="${DP_CLIP_BOUND:-5.0}"  # leaf clipping bound C
 SEED="${SEED:-42}"                  # random seed for XGBoost and DP noise
+JOB_NAME_OVERRIDE="${JOB_NAME:-}"   # override job name (set by run_dp_sweep.sh)
 
 echo "Generating Double RF Job Configuration..."
 if [ -n "${DP_EPSILON}" ]; then
@@ -24,6 +25,11 @@ if [ -n "${DP_EPSILON}" ]; then
     DP_ARGS="--dp_epsilon ${DP_EPSILON} --dp_delta ${DP_DELTA} --dp_clip_bound ${DP_CLIP_BOUND}"
 fi
 
+JOB_NAME_ARG=""
+if [ -n "${JOB_NAME_OVERRIDE}" ]; then
+    JOB_NAME_ARG="--job_name ${JOB_NAME_OVERRIDE}"
+fi
+
 python3 utils/prepare_job_config.py \
     --site_num 5 \
     --num_local_parallel_tree 20 \
@@ -31,6 +37,7 @@ python3 utils/prepare_job_config.py \
     --nthread 4 \
     --data_split_root "${DATA_DIR}/IoV/data_splits" \
     --seed "${SEED}" \
-    ${DP_ARGS}
+    ${DP_ARGS} \
+    ${JOB_NAME_ARG}
 
 echo "IoV Double RF Job generated successfully."
