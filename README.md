@@ -209,6 +209,7 @@ bash cleansing_job.sh --confirm # actually delete
 ---
 
 # Phase 3 — AWS EMR + S3 (Real Distributed Deployment)
+# DETAIL in /IoV-secureFL-Pipeline_awsEC2S3/README.md
 
 Deploys the same Double RF pipeline on real distributed AWS infrastructure with **Non-IID data splitting** (Dirichlet distribution) to simulate realistic vehicle fleet heterogeneity.
 
@@ -227,6 +228,3 @@ Deploys the same Double RF pipeline on real distributed AWS infrastructure with 
 Uses **class-specific Dirichlet concentration**:
 - **BENIGN (α=2.0)** — majority class (96% of data), needs higher α to avoid extreme site imbalance
 - **Attack classes (α=0.5)** — heterogeneous by design, simulates vehicles in different environments
-
-## Instructions
-Up comming................
