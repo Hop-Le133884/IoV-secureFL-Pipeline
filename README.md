@@ -9,26 +9,19 @@ A production-ready machine learning pipeline featuring a novel **Federated Doubl
 |-------|-------------|--------|
 | **Phase 1** | Centralized Baseline & Double RF Prototyping | Complete |
 | **Phase 2** | Privacy-Preserving Federated Double Random Forest (NVFlare + XGBoost) | Complete |
-| **Phase 3** | Real Distributed Deployment (AWS EMR + S3, Non-IID) | Complete |
+| **Phase 3** | Real Distributed Deployment (AWS EC2 + S3, Non-IID) | Complete |
 
 ---
 
 # Project Structure
 
 ```
-IoV-secureFL-Pipeline/
+IoV-secureFL-Pipeline/              ← Phase 1 & 2 (this repo)
 ├── data/
 │   ├── raw/                         # Original CICIoV2024 CSVs per class
 │   └── processed/                   # Deduplicated + federated splits
 ├── jobs/
 │   └── random_forest_base/          # NVFlare job template (executor + config)
-├── aws_emr/                         # Phase 3 — AWS EMR deployment workspace
-│   ├── config/emr_config.json
-│   ├── data/prepare_noniid_split.py
-│   ├── fl/                          # S3-aware executor + data loader
-│   ├── emr/                         # Cluster JSON templates
-│   ├── bootstrap/                   # EMR bootstrap script
-│   └── scripts/                     # 01–05 step scripts
 ├── notebooks/
 │   └── 01_reproducing_exploration_baseline.ipynb
 ├── utils/
@@ -38,6 +31,15 @@ IoV-secureFL-Pipeline/
 ├── jobs_gen.sh                      # Generate NVFlare job configs
 ├── run_experiment_simulator.sh      # Launch NVFlare simulator
 └── cleansing_job.sh                 # Remove generated artifacts
+
+IoV-secureFL-Pipeline_awsEC2S3/     ← Phase 3 (separate deployment folder)
+├── fleet_deployment.sh              # Bootstrap + rsync all 5 EC2 client nodes
+├── network_provision.sh             # NVFlare provisioning + cert distribution
+├── jobs_gen.sh                      # Generate + deploy job config (with DP_EPSILON)
+├── start_fleet.sh                   # Start NVFlare clients on all 5 EC2 nodes
+├── monitor_fleet.sh                 # Monitor client training output
+├── evaluate.sh                      # Extract models + run evaluation
+└── README.md                        # Full step-by-step AWS deployment guide
 ```
 
 ---
@@ -208,23 +210,68 @@ bash cleansing_job.sh --confirm # actually delete
 
 ---
 
-# Phase 3 — AWS EMR + S3 (Real Distributed Deployment)
-# DETAIL in /IoV-secureFL-Pipeline_awsEC2S3/README.md
+# Phase 3 — AWS EC2 + S3 (Real Distributed Deployment)
 
-Deploys the same Double RF pipeline on real distributed AWS infrastructure with **Non-IID data splitting** (Dirichlet distribution) to simulate realistic vehicle fleet heterogeneity.
+> Full step-by-step guide: [`IoV-secureFL-Pipeline_awsEC2S3/README.md`](../IoV-secureFL-Pipeline_awsEC2S3/README.md)
+
+Deploys the same Double RF pipeline on real distributed AWS EC2 infrastructure with **Non-IID data splitting** (Dirichlet distribution) to simulate realistic vehicle fleet heterogeneity.
 
 ## Key Differences from Phase 2
 
 | | Phase 2 | Phase 3 |
 |---|---|---|
-| Infrastructure | NVFlare simulator, single machine | 6 EMR clusters (1 server + 5 clients) |
-| Data split | IID stratified | Non-IID Dirichlet (BENIGN α=2.0, attack α=0.5) |
-| Data location | Local CSV | S3 bucket |
+| Infrastructure | NVFlare simulator, single machine | 6 EC2 instances (1 master server + 5 vehicle clients) |
+| Data split | IID stratified (StratifiedKFold) | Non-IID Dirichlet (BENIGN α=2.0, attack α=0.5) |
+| Data location | Local CSV | Local CSV on each EC2 node (rsync'd from master) |
 | DP epsilon | Sweep (1 → ∞) | Fixed ε=80 |
-| Dataset | ~5,493 rows (same processed data) | Same deduplicated dataset |
+| Dataset | ~5,493 rows (deduplicated unique signatures) | Same deduplicated dataset (5x-capped) |
+
+## Infrastructure
+
+- **Master server**: `172.31.33.187` — runs FL server + admin console (ports 8002, 8003)
+- **Vehicle clients (site-1 to site-5)**: `172.31.71.9`, `172.31.67.199`, `172.31.76.174`, `172.31.77.237`, `172.31.64.105`
+- **SSH key**: `ec2Key/iov-dp-key.pem`
+- **OS**: Ubuntu 22.04 LTS, Python 3.12 via `uv`
 
 ## Non-IID Split Design
 
 Uses **class-specific Dirichlet concentration**:
-- **BENIGN (α=2.0)** — majority class (96% of data), needs higher α to avoid extreme site imbalance
-- **Attack classes (α=0.5)** — heterogeneous by design, simulates vehicles in different environments
+- **BENIGN (α=2.0)** — majority class (~96% of data); higher α prevents pathological near-zero splits at any site
+- **Attack classes (α=0.5)** — heterogeneous by design; some sites intentionally receive zero samples of certain attack types, forcing the federation to learn globally what no single vehicle knows locally
+
+## Quick Execution Reference
+
+```bash
+cd ~/IoV-secureFL-Pipeline_awsEC2S3
+
+# 1. Clean master + clients
+./cleansing_job.sh --confirm && ./clean_fleet.sh
+
+# 2. Install deps + deploy to all 5 clients
+uv sync && source .venv/bin/activate
+./fleet_deployment.sh
+
+# 3. Generate data splits (non-IID Dirichlet)
+bash data_split_gen.sh ./data
+
+# 4. Provision NVFlare network (certs + startup kits)
+bash network_provision.sh
+
+# 5. Generate job config with DP ε=80
+DP_EPSILON=80 SEED=42 bash jobs_gen.sh ./data
+
+# 6. Start server, then all clients
+bash workspace/iov_securefl_network/prod_00/server/startup/start.sh
+./start_fleet.sh
+
+# 7. Submit job via admin console
+bash workspace/iov_securefl_network/prod_00/admin@master.com/startup/fl_admin.sh
+# Inside console: submit_job iov_double_rf_5_sites
+```
+submit_job jobs/iov_double_rf_5_sites
+```
+# 8. Evaluate
+./evaluate.sh 
+```
+
+See [`IoV-secureFL-Pipeline_awsEC2S3/README.md`](../IoV-secureFL-Pipeline_awsEC2S3/README.md) for full details including monitoring, troubleshooting, and model architecture.
