@@ -1,0 +1,30 @@
+{
+  "format_version": 2,
+  "executors": [
+    {
+      "tasks": ["train_inner", "train_outer"],
+      "executor": {
+        "id": "Executor",
+        "path": "iov_executor.DoubleRFExecutor",
+        "args": {
+          "data_loader_id": "dataloader",
+          "num_local_parallel_tree": 20,
+          "max_depth": 8,
+          "learning_rate": 0.1,
+          "dp_epsilon": null,
+          "dp_delta": 1e-5,
+          "dp_clip_bound": 5.0
+        }
+      }
+    }
+  ],
+  "components": [
+    {
+      "id": "dataloader",
+      "path": "iov_data_loader.IoVDataLoader",
+      "args": {
+        "data_split_filename": "data_split.json"
+      }
+    }
+  ]
+}

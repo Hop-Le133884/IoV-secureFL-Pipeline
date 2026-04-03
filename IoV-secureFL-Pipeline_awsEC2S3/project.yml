@@ -1,0 +1,44 @@
+api_version: 3
+name: iov_securefl_network
+description: IoV Secure FL Network
+
+participants:
+  - name: server
+    type: server
+    org: aws_cluster
+    fqdn: "172.31.33.187"
+    fed_learn_port: 8002
+    admin_port: 8003
+  - name: site-1
+    type: client
+    org: aws_cluster
+  - name: site-2
+    type: client
+    org: aws_cluster
+  - name: site-3
+    type: client
+    org: aws_cluster
+  - name: site-4
+    type: client
+    org: aws_cluster
+  - name: site-5
+    type: client
+    org: aws_cluster
+  - name: admin@master.com
+    type: admin
+    org: aws_cluster
+    role: project_admin
+
+builders:
+  - path: nvflare.lighter.impl.workspace.WorkspaceBuilder
+  - path: nvflare.lighter.impl.template.TemplateBuilder
+  - path: nvflare.lighter.impl.static_file.StaticFileBuilder
+    args:
+      config_folder: config
+      overseer_agent:
+        path: nvflare.ha.dummy_overseer_agent.DummyOverseerAgent
+        overseer_exists: false
+        args:
+          sp_end_point: "172.31.33.187:8002:8003"
+  - path: nvflare.lighter.impl.cert.CertBuilder
+  - path: nvflare.lighter.impl.signature.SignatureBuilder

@@ -51,21 +51,19 @@ def main():
     df_test.to_csv(test_path, index=False)
     print(f"\nServer test set ({len(df_test):,} unique signatures) → {test_path}")
 
-    # ── 2. Client training shards (StratifiedKFold) ─────────────────────────
+    # ── 2. Client training shards (StratifiedKFold — IID) ───────────────────
     skf = StratifiedKFold(n_splits=args.site_num, shuffle=True, random_state=42)
     os.makedirs(args.out_path, exist_ok=True)
 
-    print(f"\nSplitting {len(df):,} rows into {args.site_num} stratified client shards ...")
+    print(f"\nSplitting {len(df):,} rows into {args.site_num} stratified (IID) client shards ...")
     for shard_idx, (_, fold_idx) in enumerate(skf.split(df, df['specific_class']), 1):
         site_name = f"{args.site_name_prefix}{shard_idx}"
         shard = df.iloc[fold_idx].copy()
 
-        # Save client CSV
         csv_name = f"vehicle_{site_name}_train.csv"
         csv_path = os.path.join(processed_dir, csv_name)
         shard.to_csv(csv_path, index=False)
 
-        # Save JSON pointer (data loader reads this to locate the CSV)
         json_data = {
             "csv_path": os.path.abspath(csv_path),
             "test_csv_path": os.path.abspath(test_path),
