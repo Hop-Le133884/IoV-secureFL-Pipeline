@@ -267,11 +267,25 @@ bash workspace/iov_securefl_network/prod_00/server/startup/start.sh
 # 7. Submit job via admin console
 bash workspace/iov_securefl_network/prod_00/admin@master.com/startup/fl_admin.sh
 # Inside console: submit_job iov_double_rf_5_sites
-```
-submit_job jobs/iov_double_rf_5_sites
-```
+
 # 8. Evaluate
-./evaluate.sh 
+./evaluate.sh
 ```
 
 See [`IoV-secureFL-Pipeline_awsEC2S3/README.md`](../IoV-secureFL-Pipeline_awsEC2S3/README.md) for full details including monitoring, troubleshooting, and model architecture.
+
+---
+
+# Related Publication
+
+This project extends the following peer-reviewed paper, which established the centralized baseline (Phase 1) and the unique-signature deduplication methodology used throughout all phases:
+
+> **Hop Le & Izzat Alsmadi** (2026). *Intrusion Detection for Internet of Vehicles CAN Bus Communications Using Machine Learning: An Empirical Study on the CICIoV2024 Dataset.* **Future Internet**, 18(1), 42.
+> [https://doi.org/10.3390/fi18010042](https://doi.org/10.3390/fi18010042)
+
+**Key findings from the paper:**
+- Strict deduplication of CAN frames exposes data leakage in previously reported "near-perfect" detection rates
+- Random Forest with Stratified K-Fold cross-validation provides the most reliable centralized baseline
+- Lightweight models outperform deep learning on realistic, non-redundant IoV data
+
+This federated pipeline (Phases 2–3) builds directly on those findings — distributing the Random Forest across 5 vehicle nodes with Differential Privacy to achieve privacy-preserving collaborative IDS without centralizing raw CAN bus data.
