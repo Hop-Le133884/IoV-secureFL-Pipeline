@@ -9,7 +9,7 @@ A production-ready machine learning pipeline featuring a novel **Federated Doubl
 |-------|-------------|--------|
 | **Phase 1** | Centralized Baseline & Double RF Prototyping | Complete |
 | **Phase 2** | Privacy-Preserving Federated Double Random Forest (NVFlare + XGBoost) | Complete |
-| **Phase 3** | Real Distributed Deployment (AWS EMR + S3, Non-IID) | Ready |
+| **Phase 3** | Real Distributed Deployment (AWS EMR + S3, Non-IID) | Complete |
 
 ---
 
