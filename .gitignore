@@ -21,4 +21,4 @@ IoV-secureFL-Pipeline_awsEMRver/data/IoV/*
 # virtual environment
 .venv/
 uv.lock
-IoV-secureFL-Pipeline_awsEMRver/ec2_key/*
+IoV-secureFL-Pipeline_awsEC2S3/ec2Key/
