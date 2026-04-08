@@ -23,4 +23,4 @@ IoV-secureFL-Pipeline_awsEC2S3/data/IoV/*.csv
 uv.lock
 
 # secret aws keys
-IoV-secureFL-Pipeline_awsEC2S3/ec2Key/*
+IoV-secureFL-Pipeline_awsEC2S3/ec2Key/*.rsa
