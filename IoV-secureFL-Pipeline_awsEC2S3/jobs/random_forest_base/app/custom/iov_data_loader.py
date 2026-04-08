@@ -1,4 +1,5 @@
 import json
+import numpy as np
 import pandas as pd
 import xgboost as xgb
 from nvflare.app_opt.xgboost.data_loader import XGBDataLoader
@@ -33,10 +34,19 @@ class IoVDataLoader(XGBDataLoader):
 
         return self.get_inner_dmatrix(), self.get_inner_dmatrix()
 
+    @staticmethod
+    def _balanced_weights(y):
+        """Balanced sample weights: n_samples / (n_classes * count_per_class).
+        Equivalent to sklearn class_weight='balanced'."""
+        counts = y.value_counts()
+        n_samples, n_classes = len(y), len(counts)
+        class_w = {cls: n_samples / (n_classes * cnt) for cls, cnt in counts.items()}
+        return y.map(class_w).values.astype(np.float32)
+
     def get_inner_dmatrix(self):
         X = self.site_df[FEATURES]
         y = self.site_df['is_attack']
-        return xgb.DMatrix(X, label=y)
+        return xgb.DMatrix(X, label=y, weight=self._balanced_weights(y))
 
     def augment_and_get_outer_dmatrix(self, global_inner_model):
         X_inner = self.site_df[FEATURES]
@@ -50,4 +60,4 @@ class IoVDataLoader(XGBDataLoader):
         y_outer = self.site_df['specific_class'].astype(str).map(LABEL_MAP)
         print(f"\n--- Fixed Global Label Map: {LABEL_MAP} ---\n")
         print(f"    Local classes at this site: {sorted(self.site_df['specific_class'].unique().tolist())}")
-        return xgb.DMatrix(X_outer, label=y_outer)
+        return xgb.DMatrix(X_outer, label=y_outer, weight=self._balanced_weights(y_outer))

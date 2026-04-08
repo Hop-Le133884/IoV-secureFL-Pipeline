@@ -280,8 +280,7 @@ See [`IoV-secureFL-Pipeline_awsEC2S3/README.md`](../IoV-secureFL-Pipeline_awsEC2
 
 This project extends the following peer-reviewed paper, which established the centralized baseline (Phase 1) and the unique-signature deduplication methodology used throughout all phases:
 
-> **Hop Le & Izzat Alsmadi** (2026). *Intrusion Detection for Internet of Vehicles CAN Bus Communications Using Machine Learning: An Empirical Study on the CICIoV2024 Dataset.* **Future Internet**, 18(1), 42.
-> [https://doi.org/10.3390/fi18010042](https://doi.org/10.3390/fi18010042)
+**Hop Le & Izzat Alsmadi** (2026). *Intrusion Detection for Internet of Vehicles CAN Bus Communications Using Machine Learning: An Empirical Study on the CICIoV2024 Dataset.* **Future Internet**, 18(1), 42. [https://doi.org/10.3390/fi18010042](https://doi.org/10.3390/fi18010042)
 
 **Key findings from the paper:**
 - Strict deduplication of CAN frames exposes data leakage in previously reported "near-perfect" detection rates

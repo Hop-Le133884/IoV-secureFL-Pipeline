@@ -15,7 +15,8 @@ def job_config_args_parser():
     parser.add_argument("--site_name_prefix", type=str, default="site-", help="Site name prefix")
     parser.add_argument("--num_local_parallel_tree", type=int, default=20, help="Trees per stage per site")
     parser.add_argument("--max_depth", type=int, default=8, help="Maximum depth of a tree")
-    parser.add_argument("--local_subsample", type=float, default=0.8, help="Subsample rate")
+    parser.add_argument("--local_subsample", type=float, default=0.8, help="Row subsample rate per tree (RF bagging)")
+    parser.add_argument("--colsample_bynode", type=float, default=0.8, help="Feature subsample rate per split (RF feature randomness)")
     parser.add_argument("--nthread", type=int, default=4, help="nthread for xgboost")
     parser.add_argument("--dp_epsilon", type=float, default=None, help="DP privacy budget ε (None = no DP)")
     parser.add_argument("--dp_delta", type=float, default=1e-5, help="DP failure probability δ")
@@ -109,6 +110,7 @@ def _update_client_config(config: dict, args, site_name: str):
     exec_args["num_local_parallel_tree"] = args.num_local_parallel_tree
     exec_args["max_depth"] = args.max_depth
     exec_args["local_subsample"] = args.local_subsample
+    exec_args["colsample_bynode"] = args.colsample_bynode
     exec_args["nthread"] = args.nthread
     exec_args["dp_epsilon"] = args.dp_epsilon
     exec_args["dp_delta"] = args.dp_delta

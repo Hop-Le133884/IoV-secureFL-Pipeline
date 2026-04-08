@@ -8,7 +8,7 @@ from nvflare.apis.executor import Executor
 from nvflare.apis.fl_context import FLContext
 from nvflare.apis.shareable import Shareable
 from nvflare.apis.signal import Signal
-from sklearn.metrics import accuracy_score, log_loss
+from sklearn.metrics import accuracy_score, f1_score, log_loss
 
 
 class DoubleRFExecutor(Executor):
@@ -94,13 +94,15 @@ class DoubleRFExecutor(Executor):
             predictions = [1 if p > 0.5 else 0 for p in preds]
             acc = accuracy_score(y_true, predictions)
             loss = log_loss(y_true, preds)
+            f1 = f1_score(y_true, predictions, average="macro", zero_division=0)
         else:
             predictions = np.argmax(preds, axis=1)
             acc = accuracy_score(y_true, predictions)
             # Pass all 6 class labels explicitly — non-IID sites may only have
             # a subset locally, but the global model always outputs 6 probabilities.
             loss = log_loss(y_true, preds, labels=list(range(6)))
-        return acc, loss
+            f1 = f1_score(y_true, predictions, average="macro", zero_division=0)
+        return acc, loss, f1
 
     # ------------------------------------------------------------------
     # FL lifecycle
@@ -122,14 +124,24 @@ class DoubleRFExecutor(Executor):
 
             dmat_inner = data_loader.get_inner_dmatrix()
             bst_inner = xgb.train(
-                {"objective": "binary:logistic", "tree_method": self.xgb_params.get("tree_method", "hist"),
-                 "seed": self.seed},
+                {
+                    "objective": "binary:logistic",
+                    "tree_method": self.xgb_params.get("tree_method", "hist"),
+                    # XGBoost RF mode: one bagging round of num_parallel_tree trees
+                    "num_parallel_tree": self.xgb_params.get("num_local_parallel_tree", 20),
+                    "max_depth": self.xgb_params.get("max_depth", 8),
+                    "subsample": self.xgb_params.get("local_subsample", 0.8),
+                    "colsample_bynode": self.xgb_params.get("colsample_bynode", 0.8),
+                    "learning_rate": 1.0,  # no shrinkage — RF does not shrink trees
+                    "nthread": self.xgb_params.get("nthread", 4),
+                    "seed": self.seed,
+                },
                 dmat_inner,
-                num_boost_round=self.xgb_params.get("num_local_parallel_tree", 20),
+                num_boost_round=1,  # RF = 1 round of num_parallel_tree trees
             )
 
-            acc, loss = self._calculate_metrics(bst_inner, dmat_inner, "Binary")
-            print(f"======> {client_id} Stage 1 | Acc: {acc*100:.2f}% | LogLoss: {loss:.6f} <======")
+            acc, loss, f1 = self._calculate_metrics(bst_inner, dmat_inner, "Binary")
+            print(f"======> {client_id} Stage 1 | Acc: {acc*100:.2f}% | F1: {f1:.4f} | LogLoss: {loss:.6f} <======")
             self.log_info(fl_ctx, f"Site {client_id} Stage 1 (Binary) LogLoss: {loss:.6f}")
 
             if self.dp_epsilon:
@@ -152,14 +164,25 @@ class DoubleRFExecutor(Executor):
 
             dmat_outer = data_loader.augment_and_get_outer_dmatrix(global_inner_model)
             bst_outer = xgb.train(
-                {"objective": "multi:softprob", "num_class": 6, "tree_method": self.xgb_params.get("tree_method", "hist"),
-                 "seed": self.seed},
+                {
+                    "objective": "multi:softprob",
+                    "num_class": 6,
+                    "tree_method": self.xgb_params.get("tree_method", "hist"),
+                    # XGBoost RF mode: one bagging round of num_parallel_tree trees
+                    "num_parallel_tree": self.xgb_params.get("num_local_parallel_tree", 20),
+                    "max_depth": self.xgb_params.get("max_depth", 8),
+                    "subsample": self.xgb_params.get("local_subsample", 0.8),
+                    "colsample_bynode": self.xgb_params.get("colsample_bynode", 0.8),
+                    "learning_rate": 1.0,  # no shrinkage — RF does not shrink trees
+                    "nthread": self.xgb_params.get("nthread", 4),
+                    "seed": self.seed,
+                },
                 dmat_outer,
-                num_boost_round=self.xgb_params.get("num_local_parallel_tree", 20),
+                num_boost_round=1,  # RF = 1 round of num_parallel_tree trees
             )
 
-            acc, loss = self._calculate_metrics(bst_outer, dmat_outer, "Multi-class")
-            print(f"======> {client_id} Stage 2 | Acc: {acc*100:.2f}% | LogLoss: {loss:.6f} <======")
+            acc, loss, f1 = self._calculate_metrics(bst_outer, dmat_outer, "Multi-class")
+            print(f"======> {client_id} Stage 2 | Acc: {acc*100:.2f}% | F1: {f1:.4f} | LogLoss: {loss:.6f} <======")
             self.log_info(fl_ctx, f"Site {client_id} Stage 2 (Master) LogLoss: {loss:.4f}")
 
             if self.dp_epsilon:
