@@ -4,7 +4,7 @@
 # Usage:  bash data_split_gen.sh ./data
 #
 # Inputs  (inside DATA_DIR):
-#   processed/df_federated_5x.csv   — 5x-capped training data (built in notebook)
+#   processed/df_federated_100x.csv   — 5x-capped training data (built in notebook)
 #
 # Outputs (inside DATA_DIR):
 #   processed/vehicle_site-N_train.csv  — one CSV per FL client site
@@ -12,7 +12,7 @@
 #   IoV/data_splits/data_site-N.json    — JSON pointer files for the data loader
 
 DATA_DIR=$(realpath "${1:-./data}")
-FEDERATED_DATA="${DATA_DIR}/processed/df_federated_5x.csv"
+FEDERATED_DATA="${DATA_DIR}/processed/df_federated_100x.csv"
 OUTPUT_PATH="${DATA_DIR}/IoV/data_splits"
 PROCESSED_DIR="${DATA_DIR}/processed"
 

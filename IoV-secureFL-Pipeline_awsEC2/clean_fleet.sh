@@ -4,14 +4,17 @@
 # Usage: ./clean_fleet.sh
 
 KEY=ec2Key/iov-dp-key.pem
-CORE_IPS=("172.31.71.9" "172.31.67.199" "172.31.76.174" "172.31.77.237" "172.31.64.105")
+
+CORE_IPS=("172.31.0.200" "172.31.0.28" "172.31.0.34" "172.31.0.21" "172.31.0.16")
+
+
 SITE_NUM=1
 
 echo "Cleaning all client nodes to first-time state..."
 for IP in "${CORE_IPS[@]}"; do
     echo "  -> Cleaning site-${SITE_NUM} ($IP)..."
     ssh -i "$KEY" -o StrictHostKeyChecking=no ubuntu@"$IP" bash <<'REMOTE'
-        REPO=~/IoV-secureFL-Pipeline_awsEC2S3
+        REPO=~/IoV-secureFL-Pipeline_awsEC2
 
         # Kill any running NVFlare / sub_start processes
         pkill -f nvflare      2>/dev/null

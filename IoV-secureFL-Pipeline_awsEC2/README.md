@@ -63,6 +63,33 @@ Double Random Forest (two-stage pipeline):
 
 > If using the default VPC (172.31.0.0/16), you can skip creating a new VPC.
 
+### 1.2.1 Attach an Internet Gateway (required for SSH access)
+
+Without this step, your instances have public IPs but are **unreachable from the internet** — SSH and nc will time out even if the security group is correct.
+
+1. VPC → **Internet Gateways** → **Create internet gateway**
+   - Name: `iov-securefl-igw`
+   - Create
+
+2. **Actions → Attach to VPC** → select `iov-securefl-vpc` → Attach
+
+   > ⚠️ Do not reuse an IGW from another VPC — you will get a "belong to different networks" error.
+
+3. VPC → **Route Tables** → find the route table associated with `iov-securefl-subnet` → **Routes** tab → **Edit routes** → **Add route**:
+
+   | Destination | Target |
+   |---|---|
+   | `0.0.0.0/0` | `iov-securefl-igw` (igw-xxxxxxxx) |
+
+   → Save changes
+
+4. Verify: the route table should now show two routes:
+
+   | Destination | Target |
+   |---|---|
+   | `172.31.0.0/16` | local |
+   | `0.0.0.0/0` | igw-xxxxxxxx |
+
 ### 1.3 Create a Security Group
 
 1. EC2 → **Security Groups** → **Create security group**
@@ -72,7 +99,7 @@ Double Random Forest (two-stage pipeline):
 
 | Type        | Protocol | Port  | Source           | Purpose              |
 |-------------|----------|-------|------------------|----------------------|
-| SSH         | TCP      | 22    | Your IP / 0.0.0.0/0 | SSH access        |
+| SSH         | TCP      | 22    | My IP / 0.0.0.0/0 | SSH access        |
 | Custom TCP  | TCP      | 8002  | 172.31.0.0/16    | NVFlare FL port      |
 | Custom TCP  | TCP      | 8003  | 172.31.0.0/16    | NVFlare Admin port   |
 | All traffic | All      | All   | 172.31.0.0/16    | Intra-VPC (clients ↔ server) |
@@ -88,16 +115,13 @@ Launch **6 instances** total: 1 master server + 5 vehicle clients.
 1. EC2 → **Launch Instance**
 2. **AMI**: Ubuntu Server 22.04 LTS (64-bit x86)
 3. **Instance type**:
-   - Master server: `t3.medium` or larger (2 vCPU, 4 GB RAM minimum)
-   - Vehicle clients: `t3.small` or `t3.medium` (1-2 vCPU, 2-4 GB RAM)
+   - Master server: `5.xlarge` (or testing on lower config)
+   - Vehicle clients: `m4.large` (or testing on lower config)
 4. **Key pair**: `iov-dp-key`
 5. **Network**: select your VPC and subnet
 6. **Security group**: `iov-securefl-sg`
-7. **Storage**: 20 GB gp3 (master), 10 GB gp3 (clients)
-8. **Advanced → User data** (optional): leave blank; provisioning is done via scripts
-
-**Assign fixed private IPs** (optional but recommended):
-- EC2 → Network Interfaces → Assign a secondary private IP, or configure at launch under Advanced Network Settings
+7. **Storage**: 25 GB gp3 (master), 20 GB gp3 (clients) (or testing on lower config)
+8. **Advanced → User data** leave blank; provisioning is done via scripts
 
 After launch, note the **private IPv4 addresses** for all 6 instances.
 
@@ -124,7 +148,35 @@ Current configured IPs (update these):
 
 ### 1.6 Verify Connectivity
 
-From the master node, test SSH to each client:
+**Step 1 — SSH from your local machine to the master node:**
+
+```bash
+# From your local machine
+ssh -i ec2Key/iov-dp-key.pem ubuntu@<MASTER_PUBLIC_IP>
+```
+
+> Get the master's public IP from EC2 Console → Instances → select master instance → **Public IPv4 address**.
+> Note: public IP changes on every stop/start unless you attach an Elastic IP.
+
+**Step 2 — Copy the project folder from your local machine to the master node:**
+
+Run this from your **local machine** (not inside the SSH session):
+
+```bash
+# Copy project code
+rsync -avz -e "ssh -i ec2Key/iov-dp-key.pem" \
+    ../IoV-secureFL-Pipeline_awsEC2/ \
+    ubuntu@<MASTER_PUBLIC_IP>:~/IoV-secureFL-Pipeline_awsEC2/
+
+# Copy processed data (required for jobs_gen.sh to generate data splits)
+rsync -avz -e "ssh -i ec2Key/iov-dp-key.pem" \
+    ./data/processed/ \
+    ubuntu@<MASTER_PUBLIC_IP>:~/IoV-secureFL-Pipeline_awsEC2/data/processed/
+```
+
+> Re-run this any time you update scripts locally — rsync only transfers changed files.
+
+**Step 3 — From the master node, test SSH to each client:**
 
 ```bash
 ssh -i ec2Key/iov-dp-key.pem ubuntu@172.31.71.9 "echo site-1 OK"
@@ -136,7 +188,7 @@ ssh -i ec2Key/iov-dp-key.pem ubuntu@172.31.67.199 "echo site-2 OK"
 
 ## Part 2 — Project Setup (Master Node)
 
-All commands run on the **master server** from inside `~/IoV-secureFL-Pipeline_awsEC2S3/`.
+All commands run on the **master server** from inside `~/IoV-secureFL-Pipeline_awsEC2/`.
 
 ### 2.1 Prerequisites
 
@@ -148,23 +200,20 @@ source $HOME/.local/bin/env
 
 ### 2.2 Clone / Transfer the Repository
 
-```bash
-git clone <your-repo-url> ~/IoV-secureFL-Pipeline_awsEC2S3
-cd ~/IoV-secureFL-Pipeline_awsEC2S3
-```
+The project should already be on the master node from Step 2 in section 1.6.
+If you need to re-transfer or update:
 
-Or transfer from your local machine:
+Then on the master node:
 
 ```bash
-rsync -avz -e "ssh -i iov-dp-key.pem" ./IoV-secureFL-Pipeline_awsEC2S3/ \
-    ubuntu@<MASTER_IP>:~/IoV-secureFL-Pipeline_awsEC2S3/
+cd ~/IoV-secureFL-Pipeline_awsEC2
 ```
 
 ### 2.3 Prepare the Dataset
 
 The pipeline expects a pre-processed federated dataset at:
 ```
-data/processed/df_federated_5x.csv
+data/processed/df_federated_100x.csv
 ```
 
 Run the notebook `01_reproducing_exploration_baseline.ipynb` to generate it, or transfer it from your local machine.
@@ -173,7 +222,7 @@ Run the notebook `01_reproducing_exploration_baseline.ipynb` to generate it, or 
 
 ## Part 3 — Full Pipeline Execution
 
-Run these steps in order from the **master node**, inside `~/IoV-secureFL-Pipeline_awsEC2S3/`.
+Run these steps in order from the **master node**, inside `~/IoV-secureFL-Pipeline_awsEC2/`.
 
 ### Step 1 — Clean Master Node (fresh start)
 
@@ -189,37 +238,40 @@ Removes: `.venv`, generated job configs, NVFlare workspace, model outputs, `/tmp
 ./clean_fleet.sh
 ```
 
-Wipes `~/IoV-secureFL-Pipeline_awsEC2S3/` from all 5 EC2 client nodes and kills any running NVFlare processes.
+Wipes `~/IoV-secureFL-Pipeline_awsEC2/` from all 5 EC2 client nodes and kills any running NVFlare processes.
 
 ### Step 3 — Install Python Dependencies (Master)
 
 ```bash
-uv sync
+uv venv --python 3.12
 source .venv/bin/activate
+uv sync # Install all packages and dependencies
 ```
 
-### Step 4 — Deploy to All 5 Client Nodes
-
-```bash
-./fleet_deployment.sh
-```
-
-This:
-- Rsyncs the project to all 5 client EC2 nodes
-- Installs `uv`, creates `.venv`, and installs NVFlare + XGBoost + dependencies on each client
-
-### Step 5 — Generate Data Splits
+### Step 4 — Generate Data Splits
 
 ```bash
 bash data_split_gen.sh ./data
 ```
 
-Splits `data/processed/df_federated_5x.csv` into:
+Splits `data/processed/df_federated_100x.csv` into:
 - `data/IoV/data_splits/data_site-{1..5}.json` — per-site data pointers
 - `data/processed/df_server_test.csv` — held-out server test set
 
 Uses class-specific Dirichlet allocation to simulate non-IID distribution across sites.
 See **Non-IID Data Distribution Strategy** section below for full details.
+
+### Step 5 — Deploy to All 5 Client Nodes
+
+```bash
+./fleet_deployment.sh
+or 
+bash fleet_deployment.sh
+```
+
+This:
+- Rsyncs the project to all 5 client EC2 nodes
+- Installs `uv`, creates `.venv`, and installs NVFlare + XGBoost + dependencies on each client
 
 ### Step 6 — Provision NVFlare Network
 
@@ -280,19 +332,21 @@ tail -f workspace/iov_securefl_network/prod_00/server/log.txt
 ./start_fleet.sh
 ```
 
-SSHs into each client node and starts the NVFlare client process. Each client logs to `~/IoV-secureFL-Pipeline_awsEC2S3/client.log`.
+SSHs into each client node and starts the NVFlare client process. Each client logs to `~/IoV-secureFL-Pipeline_awsEC2/client.log`.
 
 ### Step 10 — Submit the FL Job (Admin Console)
 
 ```bash
 bash workspace/iov_securefl_network/prod_00/admin@master.com/startup/fl_admin.sh
 ```
+User Name: admin@master.com
+
 
 Inside the admin console:
 
 ```
 > check_status server          # verify all 5 clients are registered
-> submit_job iov_double_rf_5_sites
+> submit_job jobs/iov_double_rf_5_sites
 > check_status server          # monitor job progress
 ```
 
@@ -341,24 +395,40 @@ Expected client output during training:
 
 Example output:
 ```
+Example output:
+```
 ============================================================
       DOUBLE RANDOM FOREST — EVALUATION ON UNIQUE SIGNATURES
 ============================================================
-  Overall Accuracy:  99.44%
-  Overall LogLoss:   0.062931
-  Macro F1-Score:    57.30%
+  Overall Accuracy:  99.6656%
+  Overall LogLoss:   0.029376
+  Macro F1-Score:    65.4666%
 
 Classification Report:
                 precision    recall  f1-score   support
+
         BENIGN       1.00      1.00      1.00      3547
-           DOS       0.86      0.90      0.88        21
-           GAS       1.00      1.00      1.00         2
-           RPM       0.38      1.00      0.56        10
-         SPEED       0.00      0.00      0.00         5
+           DOS       0.95      1.00      0.98        21
+           GAS       1.00      0.50      0.67         2
+           RPM       0.56      1.00      0.71        10
+         SPEED       1.00      0.40      0.57         5
 STEERING_WHEEL       0.00      0.00      0.00         3
+
+      accuracy                           1.00      3588
+     macro avg       0.75      0.65      0.65      3588
+  weighted avg       1.00      1.00      1.00      3588
+
+
+Confusion Matrix (Rows: True, Columns: Predicted):
+[[3542    1    0    4    0    0]
+ [   0   21    0    0    0    0]
+ [   0    0    1    1    0    0]
+ [   0    0    0   10    0    0]
+ [   0    0    0    3    2    0]
+ [   3    0    0    0    0    0]]
 ```
 
-> **Note on Macro F1**: Low Macro F1 (57%) reflects extreme class imbalance in the test set (BENIGN = 98.9%). The model correctly classifies all BENIGN and DOS traffic; rare attack classes (SPEED=5 samples, STEERING_WHEEL=3 samples) have insufficient test support for reliable evaluation.
+> **Note on Macro F1**: Low Macro F1 (65%) reflects extreme class imbalance in the test set (BENIGN = 98.9%). The model correctly classifies all BENIGN and DOS traffic; rare attack classes (SPEED=5 samples, STEERING_WHEEL=3 samples) have insufficient test support for reliable evaluation.
 
 Models are extracted to `models/`:
 - `models/xgboost_model_inner.json` — Stage 1 global binary classifier
@@ -463,7 +533,7 @@ To inspect the actual per-site class distribution after splitting:
 
 ```bash
 python3 utils/prepare_data_split.py \
-    --federated_data_path ./data/processed/df_federated_5x.csv \
+    --federated_data_path ./data/processed/df_federated_100x.csv \
     --site_num 5 \
     --out_path ./data/IoV/data_splits \
     --processed_dir ./data/processed \
@@ -545,12 +615,12 @@ Noise is applied per-leaf: each leaf value is clipped to `[-C, C]` then Gaussian
 ## Project Structure
 
 ```
-IoV-secureFL-Pipeline_awsEC2S3/
+IoV-secureFL-Pipeline_awsEC2/
 ├── ec2Key/
 │   └── iov-dp-key.pem              # AWS EC2 SSH key (chmod 400)
 ├── data/
 │   ├── processed/
-│   │   ├── df_federated_5x.csv     # 5x-capped federated training data (input)
+│   │   ├── df_federated_100x.csv     # 100x-capped federated training data (input)
 │   │   └── df_server_test.csv      # Unique-signature server test set (generated)
 │   └── IoV/
 │       └── data_splits/

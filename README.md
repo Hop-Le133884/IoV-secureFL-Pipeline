@@ -32,7 +32,7 @@ IoV-secureFL-Pipeline/              ← Phase 1 & 2 (this repo)
 ├── run_experiment_simulator.sh      # Launch NVFlare simulator
 └── cleansing_job.sh                 # Remove generated artifacts
 
-IoV-secureFL-Pipeline_awsEC2S3/     ← Phase 3 (separate deployment folder)
+IoV-secureFL-Pipeline_awsEC2/     ← Phase 3 (separate deployment folder)
 ├── fleet_deployment.sh              # Bootstrap + rsync all 5 EC2 client nodes
 ├── network_provision.sh             # NVFlare provisioning + cert distribution
 ├── jobs_gen.sh                      # Generate + deploy job config (with DP_EPSILON)
@@ -212,7 +212,7 @@ bash cleansing_job.sh --confirm # actually delete
 
 # Phase 3 — AWS EC2 + S3 (Real Distributed Deployment)
 
-> Full step-by-step guide: [`IoV-secureFL-Pipeline_awsEC2S3/README.md`](../IoV-secureFL-Pipeline_awsEC2S3/README.md)
+> Full step-by-step guide: [`IoV-secureFL-Pipeline_awsEC2/README.md`](../IoV-secureFL-Pipeline_awsEC2/README.md)
 
 Deploys the same Double RF pipeline on real distributed AWS EC2 infrastructure with **Non-IID data splitting** (Dirichlet distribution) to simulate realistic vehicle fleet heterogeneity.
 
@@ -242,7 +242,7 @@ Uses **class-specific Dirichlet concentration**:
 ## Quick Execution Reference
 
 ```bash
-cd ~/IoV-secureFL-Pipeline_awsEC2S3
+cd ~/IoV-secureFL-Pipeline_awsEC2
 
 # 1. Clean master + clients
 ./cleansing_job.sh --confirm && ./clean_fleet.sh
@@ -272,7 +272,7 @@ bash workspace/iov_securefl_network/prod_00/admin@master.com/startup/fl_admin.sh
 ./evaluate.sh
 ```
 
-See [`IoV-secureFL-Pipeline_awsEC2S3/README.md`](../IoV-secureFL-Pipeline_awsEC2S3/README.md) for full details including monitoring, troubleshooting, and model architecture.
+See [`IoV-secureFL-Pipeline_awsEC2/README.md`](../IoV-secureFL-Pipeline_awsEC2/README.md) for full details including monitoring, troubleshooting, and model architecture.
 
 ---
 

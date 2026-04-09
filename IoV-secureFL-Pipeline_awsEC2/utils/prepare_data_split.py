@@ -15,9 +15,9 @@ ALPHA_ATTACK = 0.1
 
 
 def data_split_args_parser():
-    parser = argparse.ArgumentParser(description="Generate non-IID FL data splits from df_federated_5x.csv")
+    parser = argparse.ArgumentParser(description="Generate non-IID FL data splits from df_federated_100x.csv")
     parser.add_argument("--federated_data_path", type=str, required=True,
-                        help="Path to df_federated_5x.csv (5x-capped training data)")
+                        help="Path to df_federated_100x.csv (5x-capped training data)")
     parser.add_argument("--site_num", type=int, default=5,
                         help="Number of FL client sites")
     parser.add_argument("--site_name_prefix", type=str, default="site-")

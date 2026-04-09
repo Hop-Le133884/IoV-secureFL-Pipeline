@@ -85,6 +85,17 @@ def _update_server_config(config: dict, args):
             }
         },
         {
+            "id": "broadcast_inner",
+            "path": "broadcast_inner_model.BroadcastInnerModel",
+            "args": {
+                "persistor_id": "persistor_inner",
+                "task_name": "set_global_inner",
+                "task_timeout": 120,
+                "min_clients": args.site_num,
+                "wait_time_after_min_received": 10
+            }
+        },
+        {
             "id": "stage_2_outer_rf",
             "path": "nvflare.app_common.workflows.scatter_and_gather.ScatterAndGather",
             "args": {
@@ -103,7 +114,7 @@ def _update_server_config(config: dict, args):
     ]
 
 def _update_client_config(config: dict, args, site_name: str):
-    config["executors"][0]["tasks"] = ["train_inner", "train_outer"]
+    config["executors"][0]["tasks"] = ["train_inner", "set_global_inner", "train_outer"]
     config["executors"][0]["executor"]["path"] = "iov_executor.DoubleRFExecutor"
     
     exec_args = config["executors"][0]["executor"]["args"]
@@ -138,9 +149,12 @@ def main():
     _write_json(meta, dst_job_path / JobConstants.META_FILE)
 
     os.makedirs(dst_job_path / "app_server" / "config", exist_ok=True)
+    os.makedirs(dst_job_path / "app_server" / "custom", exist_ok=True)
     server_cfg = _read_json(src_job_path / "app" / "config" / JobConstants.SERVER_JOB_CONFIG)
     _update_server_config(server_cfg, args)
     _write_json(server_cfg, dst_job_path / "app_server" / "config" / JobConstants.SERVER_JOB_CONFIG)
+    # Copy server-side controller script
+    shutil.copy(src_custom_path / "broadcast_inner_model.py", dst_job_path / "app_server" / "custom" / "broadcast_inner_model.py")
 
     for i in range(1, args.site_num + 1):
         site_name = f"{args.site_name_prefix}{i}"

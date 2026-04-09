@@ -9,9 +9,9 @@ SITE_NUM=1
 for IP in "${CORE_IPS[@]}"; do
     echo "  -> Shipping site-${SITE_NUM} certificates to $IP..."
     ssh -i ec2Key/iov-dp-key.pem -o StrictHostKeyChecking=no ubuntu@$IP \
-        "mkdir -p ~/IoV-secureFL-Pipeline_awsEC2S3/site-${SITE_NUM}"
+        "mkdir -p ~/IoV-secureFL-Pipeline_awsEC2/site-${SITE_NUM}"
     scp -i ec2Key/iov-dp-key.pem -o StrictHostKeyChecking=no -r \
-        "${PROD_DIR}/site-${SITE_NUM}" ubuntu@$IP:~/IoV-secureFL-Pipeline_awsEC2S3/
+        "${PROD_DIR}/site-${SITE_NUM}" ubuntu@$IP:~/IoV-secureFL-Pipeline_awsEC2/
     SITE_NUM=$((SITE_NUM + 1))
 done
 

@@ -2,7 +2,8 @@
 
 source .venv/bin/activate
 MASTER_IP=$(hostname -I | awk '{print $1}')
-CORE_IPS=("172.31.71.9" "172.31.67.199" "172.31.76.174" "172.31.77.237" "172.31.64.105")
+
+CORE_IPS=("172.31.0.200" "172.31.0.28" "172.31.0.34" "172.31.0.21" "172.31.0.16")
 
 echo "Generating project.yml for Master Server IP: $MASTER_IP"
 
@@ -71,14 +72,23 @@ if ! grep -q "etc/hosts" "$SERVER_START"; then
   echo "Patched server start.sh with /etc/hosts fix"
 fi
 
+# Ensure 'server' hostname resolves on the master node (required by both
+# the NVFlare server process and the fl_admin.sh admin client)
+if ! grep -qE "^[0-9].*\bserver\b" /etc/hosts; then
+    echo "$MASTER_IP server" | sudo tee -a /etc/hosts > /dev/null
+    echo "Added '$MASTER_IP server' to /etc/hosts"
+else
+    echo "'server' already in /etc/hosts — skipping"
+fi
+
 echo "Distributing Vehicle Startup Kits..."
 SITE_NUM=1
 for IP in "${CORE_IPS[@]}"; do
     echo "  -> Shipping site-${SITE_NUM} certificates to $IP..."
     ssh -i ec2Key/iov-dp-key.pem -o StrictHostKeyChecking=no ubuntu@$IP \
-        "mkdir -p ~/IoV-secureFL-Pipeline_awsEC2S3/site-${SITE_NUM}"
+        "mkdir -p ~/IoV-secureFL-Pipeline_awsEC2/site-${SITE_NUM}"
     scp -i ec2Key/iov-dp-key.pem -o StrictHostKeyChecking=no -r \
-        "${PROD_DIR}/site-${SITE_NUM}" ubuntu@$IP:~/IoV-secureFL-Pipeline_awsEC2S3/
+        "${PROD_DIR}/site-${SITE_NUM}" ubuntu@$IP:~/IoV-secureFL-Pipeline_awsEC2/
     SITE_NUM=$((SITE_NUM + 1))
 done
 

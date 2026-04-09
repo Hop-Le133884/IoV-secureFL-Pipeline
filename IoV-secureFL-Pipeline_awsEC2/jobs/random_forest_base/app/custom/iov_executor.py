@@ -1,5 +1,4 @@
 import json
-import os
 
 import numpy as np
 import xgboost as xgb
@@ -38,6 +37,8 @@ class DoubleRFExecutor(Executor):
         self.dp_clip_bound = float(dp_clip_bound)
         self.seed = int(seed)
         self.xgb_params = kwargs
+        self._local_inner_model = None   # local Stage 1 model, cached after train_inner
+        self._global_inner_model = None  # global Stage 1 model, received via set_global_inner
 
     # ------------------------------------------------------------------
     # Differential Privacy
@@ -47,9 +48,6 @@ class DoubleRFExecutor(Executor):
         """Output perturbation: add calibrated Gaussian noise to XGBoost leaf values.
 
         Mechanism: Gaussian mechanism for (ε, δ)-DP.
-            σ = C · √(2 ln(1.25 / δ)) / ε
-        where C = dp_clip_bound is the L∞ sensitivity (each leaf is first clipped
-        to [-C, C] to bound how much one training sample can shift a leaf value).
 
         Both `split_conditions` and `base_weights` are updated for leaf nodes
         since XGBoost stores the prediction score in both fields.
@@ -83,9 +81,7 @@ class DoubleRFExecutor(Executor):
         )
         return noisy_bst
 
-    # ------------------------------------------------------------------
     # Metrics helpers
-    # ------------------------------------------------------------------
 
     def _calculate_metrics(self, model, dtrain, task_type):
         preds = model.predict(dtrain)
@@ -104,9 +100,7 @@ class DoubleRFExecutor(Executor):
             f1 = f1_score(y_true, predictions, average="macro", zero_division=0)
         return acc, loss, f1
 
-    # ------------------------------------------------------------------
     # FL lifecycle
-    # ------------------------------------------------------------------
 
     def execute(self, task_name: str, shareable: Shareable, fl_ctx: FLContext, abort_signal: Signal) -> Shareable:
         engine = fl_ctx.get_engine()
@@ -118,7 +112,13 @@ class DoubleRFExecutor(Executor):
             self.log_info(fl_ctx, f"Loading data for {client_id}")
             data_loader.load_data(client_id)
 
-        if task_name == "train_inner":
+        if task_name == "set_global_inner":
+            # Receive the globally aggregated inner model from BroadcastInnerModel controller
+            self._global_inner_model = self._unpack_model(shareable)
+            print(f"[{client_id}] Received global inner model from server ({self._global_inner_model.num_boosted_rounds()} rounds)")
+            return Shareable()
+
+        elif task_name == "train_inner":
             print(f"\n[{client_id}] Stage 1: Inner RF (Binary)...")
             self.log_info(fl_ctx, "Stage 1: Inner RF (Binary)")
 
@@ -147,22 +147,24 @@ class DoubleRFExecutor(Executor):
             if self.dp_epsilon:
                 bst_inner = self._apply_dp_noise(bst_inner, client_id, "Stage1-Binary")
 
+            self._local_inner_model = bst_inner
             return self._pack_model(bst_inner)
 
         elif task_name == "train_outer":
             self.log_info(fl_ctx, "Stage 2: Outer RF (6-Class)")
 
-            # Derive workspace root from this file's location:
-            # {workspace}/{site}/simulate_job/app_{site}/custom/iov_executor.py
-            # 4 levels up from dirname(__file__) → workspace root
-            workspace_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
-            inner_model_path = os.path.join(
-                workspace_root, "server", "simulate_job", "app_server", "xgboost_model_inner.json"
-            )
-            global_inner_model = xgb.Booster()
-            global_inner_model.load_model(inner_model_path)
+            # Prefer global aggregated inner model (all 5 sites' trees via BroadcastInnerModel).
+            # Fall back to local model if broadcast step was skipped.
+            if self._global_inner_model is not None:
+                inner_model = self._global_inner_model
+                print(f"[{client_id}] Stage 2 using global aggregated inner model")
+            elif self._local_inner_model is not None:
+                inner_model = self._local_inner_model
+                print(f"[{client_id}] Stage 2 using local inner model (global not received)")
+            else:
+                raise RuntimeError(f"[{client_id}] No inner model available — train_inner must run first")
 
-            dmat_outer = data_loader.augment_and_get_outer_dmatrix(global_inner_model)
+            dmat_outer = data_loader.augment_and_get_outer_dmatrix(inner_model)
             bst_outer = xgb.train(
                 {
                     "objective": "multi:softprob",
@@ -192,9 +194,7 @@ class DoubleRFExecutor(Executor):
 
         return Shareable()
 
-    # ------------------------------------------------------------------
     # Pack / unpack
-    # ------------------------------------------------------------------
 
     def _pack_model(self, bst: xgb.Booster) -> Shareable:
         model_data = bst.save_raw("json")

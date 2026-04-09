@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+
+# This dynamically converts "./data" into a full absolute path for this specific machine
+DATA_DIR=$(realpath "${1:-./data}")
+
+# DP parameters (pass as env vars to override):
+#   DP_EPSILON=1.0 bash jobs_gen.sh ./data   → enable DP with ε=1.0
+#   DP_EPSILON=     bash jobs_gen.sh ./data   → disable DP (default)
+#   SEED=123       bash jobs_gen.sh ./data   → set random seed (default: 42)
+DP_EPSILON="${DP_EPSILON:-}"        # privacy budget ε — empty = no DP
+DP_DELTA="${DP_DELTA:-1e-5}"        # failure probability δ
+DP_CLIP_BOUND="${DP_CLIP_BOUND:-5.0}"  # leaf clipping bound C
+SEED="${SEED:-42}"                  # random seed for XGBoost and DP noise
+JOB_NAME_OVERRIDE="${JOB_NAME:-}"   # override job name (set by run_dp_sweep.sh)
+
+echo "Generating Double RF Job Configuration..."
+if [ -n "${DP_EPSILON}" ]; then
+    echo "  DP enabled: ε=${DP_EPSILON}, δ=${DP_DELTA}, clip_bound=${DP_CLIP_BOUND}"
+else
+    echo "  DP disabled (set DP_EPSILON to enable)"
+fi
+
+DP_ARGS=""
+if [ -n "${DP_EPSILON}" ]; then
+    DP_ARGS="--dp_epsilon ${DP_EPSILON} --dp_delta ${DP_DELTA} --dp_clip_bound ${DP_CLIP_BOUND}"
+fi
+
+JOB_NAME_ARG=""
+if [ -n "${JOB_NAME_OVERRIDE}" ]; then
+    JOB_NAME_ARG="--job_name ${JOB_NAME_OVERRIDE}"
+fi
+
+python3 utils/prepare_job_config.py \
+    --site_num 5 \
+    --num_local_parallel_tree 20 \
+    --max_depth 8 \
+    --nthread 4 \
+    --data_split_root "${DATA_DIR}/IoV/data_splits" \
+    --seed "${SEED}" \
+    ${DP_ARGS} \
+    ${JOB_NAME_ARG}
+
+echo "IoV Double RF Job generated successfully."
+
+# Sync generated jobs to the admin transfer directory so submit_job works out of the box
+PROD_DIR=$(ls -dt "$(realpath "$(dirname "$0")")/workspace/iov_securefl_network/prod_"* 2>/dev/null | head -1)
+TRANSFER_DIR="${PROD_DIR}/admin@master.com/transfer/jobs"
+mkdir -p "${TRANSFER_DIR}"
+rm -rf "${TRANSFER_DIR:?}/"*
+cp -r "$(realpath "$(dirname "$0")")/jobs/"* "${TRANSFER_DIR}/"
+echo "Jobs synced to admin transfer directory: ${TRANSFER_DIR}"
+
+# Fix any stale hardcoded paths in data split JSONs, then push to all client nodes
+REPO_ROOT="$(realpath "$(dirname "$0")")"
+SPLITS_DIR="${DATA_DIR}/IoV/data_splits"
+
+CORE_IPS=("172.31.0.200" "172.31.0.28" "172.31.0.34" "172.31.0.21" "172.31.0.16")
+
+echo "Fixing data split paths and syncing to client nodes..."
+for f in "${SPLITS_DIR}"/data_site-*.json; do
+  sed -i "s|/home/hople/working_folder/IoV-secureFL-Pipeline/IoV-secureFL-Pipeline_awsEMRver|${REPO_ROOT}|g" "$f"
+done
+
+SITE_NUM=1
+for IP in "${CORE_IPS[@]}"; do
+  ssh -i ec2Key/iov-dp-key.pem -o StrictHostKeyChecking=no ubuntu@$IP \
+    "mkdir -p ~/IoV-secureFL-Pipeline_awsEC2/data/IoV/data_splits"
+  scp -i ec2Key/iov-dp-key.pem -o StrictHostKeyChecking=no \
+    "${SPLITS_DIR}/data_site-${SITE_NUM}.json" \
+    ubuntu@$IP:~/IoV-secureFL-Pipeline_awsEC2/data/IoV/data_splits/data_site-${SITE_NUM}.json \
+    && echo "  -> Synced data_site-${SITE_NUM}.json to $IP"
+  SITE_NUM=$((SITE_NUM + 1))
+done

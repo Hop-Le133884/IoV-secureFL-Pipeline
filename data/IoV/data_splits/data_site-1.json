@@ -1,0 +1,14 @@
+{
+    "csv_path": "/home/hople/working_folder/IoV-secureFL-Pipeline/data/processed/vehicle_site-1_train.csv",
+    "test_csv_path": "/home/hople/working_folder/IoV-secureFL-Pipeline/data/processed/df_server_test.csv",
+    "site": "site-1",
+    "n_rows": 5427,
+    "class_counts": {
+        "BENIGN": 4663,
+        "DOS": 401,
+        "RPM": 181,
+        "SPEED": 100,
+        "STEERING_WHEEL": 42,
+        "GAS": 40
+    }
+}
