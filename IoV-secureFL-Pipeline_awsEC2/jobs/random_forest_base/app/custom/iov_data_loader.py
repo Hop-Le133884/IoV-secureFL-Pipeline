@@ -32,7 +32,8 @@ class IoVDataLoader(XGBDataLoader):
         csv_path = config["csv_path"]
         self.site_df = pd.read_csv(csv_path)
 
-        return self.get_inner_dmatrix(), self.get_inner_dmatrix()
+        dmat = self.get_inner_dmatrix()
+        return dmat, dmat
 
     @staticmethod
     def _balanced_weights(y):

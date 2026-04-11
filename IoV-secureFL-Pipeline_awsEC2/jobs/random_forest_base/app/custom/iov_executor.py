@@ -2,7 +2,7 @@ import json
 
 import numpy as np
 import xgboost as xgb
-from nvflare.apis.dxo import DXO, DataKind, MetaKey, from_shareable
+from nvflare.apis.dxo import DXO, DataKind, from_shareable
 from nvflare.apis.executor import Executor
 from nvflare.apis.fl_context import FLContext
 from nvflare.apis.shareable import Shareable

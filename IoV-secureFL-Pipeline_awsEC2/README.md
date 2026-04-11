@@ -168,11 +168,11 @@ rsync -avz -e "ssh -i ec2Key/iov-dp-key.pem" \
     ../IoV-secureFL-Pipeline_awsEC2/ \
     ubuntu@<MASTER_PUBLIC_IP>:~/IoV-secureFL-Pipeline_awsEC2/
 
-# Copy processed data (required for jobs_gen.sh to generate data splits)
-rsync -avz -e "ssh -i ec2Key/iov-dp-key.pem" \
-    ./data/processed/ \
-    ubuntu@<MASTER_PUBLIC_IP>:~/IoV-secureFL-Pipeline_awsEC2/data/processed/
-```
+# # Copy processed data (required for jobs_gen.sh to generate data splits)
+# rsync -avz -e "ssh -i ec2Key/iov-dp-key.pem" \
+#     ./data/processed/ \
+#     ubuntu@<MASTER_PUBLIC_IP>:~/IoV-secureFL-Pipeline_awsEC2/data/processed/
+# ```
 
 > Re-run this any time you update scripts locally — rsync only transfers changed files.
 

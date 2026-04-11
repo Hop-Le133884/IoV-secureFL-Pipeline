@@ -43,80 +43,11 @@ def _gen_deploy_map(num_sites: int, site_name_prefix: str) -> dict:
     return deploy_map
 
 def _update_server_config(config: dict, args):
-    """Bulletproof injection: Shared aggregator, separate persistors."""
-    config["components"] = [
-        {
-            "id": "persistor_inner",
-            "path": "nvflare.app_opt.xgboost.tree_based.model_persistor.XGBModelPersistor",
-            "args": {"save_name": "xgboost_model_inner.json"}
-        },
-        {
-            "id": "persistor_outer",
-            "path": "nvflare.app_opt.xgboost.tree_based.model_persistor.XGBModelPersistor",
-            "args": {"save_name": "xgboost_model_outer.json"}
-        },
-        {
-            "id": "aggregator",
-            "path": "nvflare.app_opt.xgboost.tree_based.bagging_aggregator.XGBBaggingAggregator",
-            "args": {}
-        },
-        {
-            "id": "shareable_generator",
-            "path": "nvflare.app_opt.xgboost.tree_based.shareable_generator.XGBModelShareableGenerator",
-            "args": {}
-        }
-    ]
-    
-    config["workflows"] = [
-        {
-            "id": "stage_1_inner_rf",
-            "path": "nvflare.app_common.workflows.scatter_and_gather.ScatterAndGather",
-            "args": {
-                "min_clients": args.site_num,
-                "num_rounds": 1,
-                "start_round": 0,
-                "wait_time_after_min_received": 10,
-                "aggregator_id": "aggregator",
-                "persistor_id": "persistor_inner",
-                "shareable_generator_id": "shareable_generator",
-                "train_task_name": "train_inner",
-                "train_timeout": 0,
-                "allow_empty_global_weights": True
-            }
-        },
-        {
-            "id": "broadcast_inner",
-            "path": "broadcast_inner_model.BroadcastInnerModel",
-            "args": {
-                "persistor_id": "persistor_inner",
-                "task_name": "set_global_inner",
-                "task_timeout": 120,
-                "min_clients": args.site_num,
-                "wait_time_after_min_received": 10
-            }
-        },
-        {
-            "id": "stage_2_outer_rf",
-            "path": "nvflare.app_common.workflows.scatter_and_gather.ScatterAndGather",
-            "args": {
-                "min_clients": args.site_num,
-                "num_rounds": 1,
-                "start_round": 0,
-                "wait_time_after_min_received": 10,
-                "aggregator_id": "aggregator",
-                "persistor_id": "persistor_outer",
-                "shareable_generator_id": "shareable_generator",
-                "train_task_name": "train_outer",
-                "train_timeout": 0,
-                "allow_empty_global_weights": True
-            }
-        }
-    ]
+    config["min_clients"] = args.site_num
+    for wf in config["workflows"]:
+        wf["args"]["min_clients"] = args.site_num
 
 def _update_client_config(config: dict, args, site_name: str):
-    config["executors"][0]["tasks"] = ["train_inner", "set_global_inner", "train_outer"]
-    config["executors"][0]["executor"]["path"] = "iov_executor.DoubleRFExecutor"
-    
     exec_args = config["executors"][0]["executor"]["args"]
     exec_args["num_local_parallel_tree"] = args.num_local_parallel_tree
     exec_args["max_depth"] = args.max_depth
@@ -127,8 +58,7 @@ def _update_client_config(config: dict, args, site_name: str):
     exec_args["dp_delta"] = args.dp_delta
     exec_args["dp_clip_bound"] = args.dp_clip_bound
     exec_args["seed"] = args.seed
-    
-    config["components"][0]["path"] = "iov_data_loader.IoVDataLoader"
+
     data_split_path = os.path.join(args.data_split_root, f"data_{site_name}.json")
     config["components"][0]["args"] = {"data_split_filename": data_split_path}
 
