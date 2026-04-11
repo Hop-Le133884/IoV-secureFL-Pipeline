@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 import xgboost as xgb
-from nvflare.apis.dxo import DXO, DataKind, MetaKey, from_shareable
+from nvflare.apis.dxo import DXO, DataKind, from_shareable
 from nvflare.apis.executor import Executor
 from nvflare.apis.fl_context import FLContext
 from nvflare.apis.shareable import Shareable
@@ -201,15 +201,3 @@ class DoubleRFExecutor(Executor):
         dxo = DXO(data_kind=DataKind.WEIGHTS, data={"model_data": model_data})
         return dxo.to_shareable()
 
-    def _unpack_model(self, shareable: Shareable) -> xgb.Booster:
-        dxo = from_shareable(shareable)
-        model_data = dxo.data.get("model_data")
-        if isinstance(model_data, list):
-            model_data = model_data[0]
-        if isinstance(model_data, bytes):
-            model_data = bytearray(model_data)
-        elif isinstance(model_data, str):
-            model_data = bytearray(model_data.encode("utf-8"))
-        bst = xgb.Booster()
-        bst.load_model(model_data)
-        return bst

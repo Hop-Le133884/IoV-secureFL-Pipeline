@@ -7,7 +7,6 @@ from nvflare.app_opt.xgboost.data_loader import XGBDataLoader
 # All 9 CAN frame fields
 FEATURES = ['ID', 'DATA_0', 'DATA_1', 'DATA_2', 'DATA_3', 'DATA_4', 'DATA_5', 'DATA_6', 'DATA_7']
 
-# Non-IID splits mean some sites won't have all 6 classes locally, but the
 # global model always outputs 6 probabilities, so labels must be fixed globally.
 LABEL_MAP = {
     'BENIGN':         0,
@@ -31,7 +30,8 @@ class IoVDataLoader(XGBDataLoader):
         csv_path = config["csv_path"]
         self.site_df = pd.read_csv(csv_path)
 
-        return self.get_inner_dmatrix(), self.get_inner_dmatrix()
+        dmat = self.get_inner_dmatrix()
+        return dmat, dmat
 
     @staticmethod
     def _balanced_weights(y):
