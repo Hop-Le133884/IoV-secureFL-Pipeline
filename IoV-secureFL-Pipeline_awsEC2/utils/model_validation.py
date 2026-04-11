@@ -29,12 +29,13 @@ def main():
     bst_inner = xgb.Booster()
     bst_inner.load_model(f"{args.workspace}/xgboost_model_inner.json")
 
-    print("Generating 'prob_ATTACK' feature ...")
+    print("Generating 'prob_BENIGN' and 'prob_ATTACK' features ...")
     prob_attack = bst_inner.predict(xgb.DMatrix(X_inner))
     df_valid = df_valid.copy()
     df_valid['prob_ATTACK'] = prob_attack
+    df_valid['prob_BENIGN'] = 1.0 - prob_attack
 
-    augmented_features = FEATURES + ['prob_ATTACK']
+    augmented_features = FEATURES + ['prob_BENIGN', 'prob_ATTACK']
     X_outer = df_valid[augmented_features]
 
     print("Loading Stage 2 (6-Class) Global Master Model ...")

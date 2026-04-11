@@ -17,12 +17,22 @@
       }
     },
     {
-      "id": "aggregator",
+      "id": "aggregator_inner",
       "path": "nvflare.app_opt.xgboost.tree_based.bagging_aggregator.XGBBaggingAggregator",
       "args": {}
     },
     {
-      "id": "shareable_generator",
+      "id": "aggregator_outer",
+      "path": "xgb_multiclass_aggregator.XGBMultiClassBaggingAggregator",
+      "args": {}
+    },
+    {
+      "id": "shareable_generator_inner",
+      "path": "nvflare.app_opt.xgboost.tree_based.shareable_generator.XGBModelShareableGenerator",
+      "args": {}
+    },
+    {
+      "id": "shareable_generator_outer",
       "path": "nvflare.app_opt.xgboost.tree_based.shareable_generator.XGBModelShareableGenerator",
       "args": {}
     }
@@ -36,9 +46,9 @@
         "num_rounds": 1,
         "start_round": 0,
         "wait_time_after_min_received": 10,
-        "aggregator_id": "aggregator",
+        "aggregator_id": "aggregator_inner",
         "persistor_id": "persistor_inner",
-        "shareable_generator_id": "shareable_generator",
+        "shareable_generator_id": "shareable_generator_inner",
         "train_task_name": "train_inner",
         "train_timeout": 0,
         "allow_empty_global_weights": true
@@ -49,6 +59,7 @@
       "path": "broadcast_inner_model.BroadcastInnerModel",
       "args": {
         "persistor_id": "persistor_inner",
+        "shareable_generator_id": "shareable_generator_inner",
         "task_name": "set_global_inner",
         "task_timeout": 120,
         "min_clients": 5,
@@ -63,9 +74,9 @@
         "num_rounds": 1,
         "start_round": 0,
         "wait_time_after_min_received": 10,
-        "aggregator_id": "aggregator",
+        "aggregator_id": "aggregator_outer",
         "persistor_id": "persistor_outer",
-        "shareable_generator_id": "shareable_generator",
+        "shareable_generator_id": "shareable_generator_outer",
         "train_task_name": "train_outer",
         "train_timeout": 0,
         "allow_empty_global_weights": true

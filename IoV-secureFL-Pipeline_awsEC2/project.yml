@@ -6,7 +6,7 @@ participants:
   - name: server
     type: server
     org: aws_cluster
-    fqdn: "172.31.0.157"
+    fqdn: "172.31.0.125"
     fed_learn_port: 8002
     admin_port: 8003
   - name: site-1
@@ -39,6 +39,6 @@ builders:
         path: nvflare.ha.dummy_overseer_agent.DummyOverseerAgent
         overseer_exists: false
         args:
-          sp_end_point: "172.31.0.157:8002:8003"
+          sp_end_point: "172.31.0.125:8002:8003"
   - path: nvflare.lighter.impl.cert.CertBuilder
   - path: nvflare.lighter.impl.signature.SignatureBuilder

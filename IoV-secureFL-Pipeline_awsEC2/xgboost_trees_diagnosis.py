@@ -19,7 +19,7 @@ def main():
     parser = argparse.ArgumentParser(description="Diagnose XGBoost global model tree counts")
     parser.add_argument(
         "--workspace", type=str,
-        default="./workspace_iov_double_rf/server/simulate_job/app_server",
+        default="models",
         help="Path to directory containing xgboost_model_inner.json and xgboost_model_outer.json"
              " (Phase 2 default: ./workspace_iov_double_rf/server/simulate_job/app_server,"
              "  Phase 3 AWS:     ./models)"

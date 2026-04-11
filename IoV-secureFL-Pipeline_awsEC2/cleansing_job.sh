@@ -18,7 +18,6 @@ TARGETS=(
     # Python environment
     ".venv"
     "uv.lock"
-    "=2.1.0"
     ".python-version"
     "__pycache__"
 

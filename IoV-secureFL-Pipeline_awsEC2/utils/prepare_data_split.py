@@ -17,7 +17,7 @@ ALPHA_ATTACK = 0.2
 def data_split_args_parser():
     parser = argparse.ArgumentParser(description="Generate non-IID FL data splits from df_federated_100x.csv")
     parser.add_argument("--federated_data_path", type=str, required=True,
-                        help="Path to df_federated_100x.csv (5x-capped training data)")
+                        help="Path to df_federated_100x.csv (100x-capped training data)")
     parser.add_argument("--site_num", type=int, default=5,
                         help="Number of FL client sites")
     parser.add_argument("--site_name_prefix", type=str, default="site-")
@@ -30,32 +30,77 @@ def data_split_args_parser():
                         help=f"Dirichlet alpha for BENIGN class (default {ALPHA_BENIGN})")
     parser.add_argument("--alpha_attack", type=float, default=ALPHA_ATTACK,
                         help=f"Dirichlet alpha for attack classes (default {ALPHA_ATTACK})")
+    parser.add_argument("--test_ratio", type=float, default=0.2,
+                        help="Fraction of unique signatures held out for the server test set "
+                             "(default 0.2). Split is done BEFORE augmentation to prevent "
+                             "data leakage — test signatures never appear in training data.")
     parser.add_argument("--seed", type=int, default=42,
                         help="Random seed for reproducibility")
     return parser
 
 
-def _make_server_test_set(df: pd.DataFrame) -> pd.DataFrame:
-    """Strict per-class deduplication — mirrors the paper's unique-signature benchmark."""
-    classes = df['specific_class'].unique()
-    parts = []
-    print("Building server test set (strict dedup per class):")
-    for cls in sorted(classes):
+def _train_test_split_unique(df: pd.DataFrame, test_ratio: float, seed: int):
+    """
+    Split unique signatures per class into train/test BEFORE augmentation.
+
+    The full df_federated_100x.csv contains each unique signature repeated up to
+    100x. Without this split, the test set would be drawn from the same signatures
+    as the training data — the model would simply be evaluated on its own training
+    patterns, inflating metrics.
+
+    This function:
+      1. Deduplicates df per class to find all unique signatures.
+      2. Holds out `test_ratio` of unique signatures per class as the test set.
+         Minimum 1 test sample and 1 train sample per class regardless of ratio.
+      3. Filters the full (augmented) df to only keep rows whose signature is
+         in the train split — these rows form the FL training pool.
+      4. Returns df_train (augmented, train signatures only) and
+         df_test (deduplicated, held-out signatures only).
+    """
+    rng = np.random.default_rng(seed)
+    train_parts = []
+    test_parts  = []
+
+    print(f"Splitting unique signatures into train/test (test_ratio={test_ratio}, seed={seed}):")
+    for cls in sorted(df['specific_class'].unique()):
         df_cls   = df[df['specific_class'] == cls]
-        df_dedup = df_cls.drop_duplicates(subset=SIGNATURE_COLS)
-        print(f"  {cls:16} | 5x-capped: {len(df_cls):>5} → unique: {len(df_dedup):>5}")
-        parts.append(df_dedup)
-    return pd.concat(parts, ignore_index=True)
+        df_dedup = df_cls.drop_duplicates(subset=SIGNATURE_COLS).reset_index(drop=True)
+        n_unique = len(df_dedup)
+
+        n_test  = max(1, round(n_unique * test_ratio))
+        n_test  = min(n_test, n_unique - 1)   # always keep ≥1 train signature
+        n_train = n_unique - n_test
+
+        perm       = rng.permutation(n_unique)
+        test_sigs  = df_dedup.iloc[perm[:n_test]]
+        train_sigs = df_dedup.iloc[perm[n_test:]]
+
+        test_parts.append(test_sigs)
+
+        # Filter augmented rows to train signatures only (merge on signature columns)
+        keep = train_sigs[SIGNATURE_COLS].copy()
+        keep['_keep'] = True
+        df_train_cls = (df_cls
+                        .merge(keep, on=SIGNATURE_COLS, how='inner')
+                        .drop(columns=['_keep']))
+        train_parts.append(df_train_cls)
+
+        print(f"  {cls:16} | unique: {n_unique:>5}  →  train: {n_train:>4}  test: {n_test:>4}"
+              f"  (augmented train rows: {len(df_train_cls):>6})")
+
+    df_train = pd.concat(train_parts, ignore_index=True)
+    df_test  = pd.concat(test_parts,  ignore_index=True)
+    return df_train, df_test
 
 
 def dirichlet_noniid_split(df, n_sites, alpha_benign, alpha_attack, seed):
     """
     Non-IID split using class-specific Dirichlet concentration.
 
-    BENIGN uses alpha_benign (2.0) — high alpha keeps BENIGN roughly balanced
+    BENIGN uses alpha_benign (15.0) — high alpha keeps BENIGN roughly balanced
     across sites, avoiding pathological splits (e.g. one site getting 16 rows).
 
-    Attack classes use alpha_attack (0.1) — low alpha makes each site specialise
+    Attack classes use alpha_attack (0.5) — low alpha makes each site specialise
     in a subset of attack types, mimicking real vehicles on different routes that
     encounter different attack surfaces. Many sites will have zero samples of
     certain minority attack classes, which is intentional and realistic.
@@ -110,18 +155,19 @@ def main():
     df = pd.read_csv(args.federated_data_path)
     print(f"  Loaded {len(df):,} rows, columns: {df.columns.tolist()}")
 
-    # ── 1. Server test set (unique signatures) ──────────────────────────────
-    df_test   = _make_server_test_set(df)
+    # ── 1. Held-out test set (unique signatures never seen during training) ──
+    df_train, df_test = _train_test_split_unique(df, args.test_ratio, args.seed)
     test_path = os.path.join(processed_dir, "df_server_test.csv")
     df_test.to_csv(test_path, index=False)
-    print(f"\nServer test set ({len(df_test):,} unique signatures) → {test_path}")
+    print(f"\nServer test set  ({len(df_test):,} held-out unique signatures) → {test_path}")
+    print(f"FL training pool ({len(df_train):,} augmented rows from train signatures)\n")
 
-    # ── 2. Non-IID Dirichlet client shards ──────────────────────────────────
-    classes      = sorted(df['specific_class'].unique())
+    # ── 2. Non-IID Dirichlet client shards (from train pool only) ───────────
+    classes      = sorted(df_train['specific_class'].unique())
     site_indices = dirichlet_noniid_split(
-        df, args.site_num, args.alpha_benign, args.alpha_attack, args.seed
+        df_train, args.site_num, args.alpha_benign, args.alpha_attack, args.seed
     )
-    site_dfs = [df.loc[idx].reset_index(drop=True) for idx in site_indices]
+    site_dfs = [df_train.loc[idx].reset_index(drop=True) for idx in site_indices]
 
     print_split_stats(site_dfs, classes, args.alpha_benign, args.alpha_attack)
 
@@ -140,6 +186,7 @@ def main():
             "n_rows":        len(sdf),
             "alpha_benign":  args.alpha_benign,
             "alpha_attack":  args.alpha_attack,
+            "test_ratio":    args.test_ratio,
             "class_counts":  sdf['specific_class'].value_counts().to_dict()
         }
         json_path = os.path.join(args.out_path, f"data_{site_name}.json")

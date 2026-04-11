@@ -19,6 +19,7 @@ class BroadcastInnerModel(Controller):
     def __init__(
         self,
         persistor_id: str = "persistor_inner",
+        shareable_generator_id: str = "shareable_generator_inner",
         task_name: str = "set_global_inner",
         task_timeout: int = 120,
         min_clients: int = 1,
@@ -26,6 +27,7 @@ class BroadcastInnerModel(Controller):
     ):
         super().__init__()
         self._persistor_id = persistor_id
+        self._shareable_generator_id = shareable_generator_id
         self._task_name = task_name
         self._task_timeout = task_timeout
         self._min_clients = min_clients
@@ -48,9 +50,9 @@ class BroadcastInnerModel(Controller):
             return
 
         # Convert ModelLearnable → Shareable using XGBModelShareableGenerator
-        shareable_gen = engine.get_component("shareable_generator")
+        shareable_gen = engine.get_component(self._shareable_generator_id)
         if shareable_gen is None:
-            self.system_panic("'shareable_generator' component not found", fl_ctx)
+            self.system_panic(f"'{self._shareable_generator_id}' component not found", fl_ctx)
             return
         data_shareable = shareable_gen.learnable_to_shareable(global_weights, fl_ctx)
 

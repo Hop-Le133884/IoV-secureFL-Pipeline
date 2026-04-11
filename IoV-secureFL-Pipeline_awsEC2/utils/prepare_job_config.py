@@ -83,8 +83,9 @@ def main():
     server_cfg = _read_json(src_job_path / "app" / "config" / JobConstants.SERVER_JOB_CONFIG)
     _update_server_config(server_cfg, args)
     _write_json(server_cfg, dst_job_path / "app_server" / "config" / JobConstants.SERVER_JOB_CONFIG)
-    # Copy server-side controller script
+    # Copy server-side controller and custom aggregator scripts
     shutil.copy(src_custom_path / "broadcast_inner_model.py", dst_job_path / "app_server" / "custom" / "broadcast_inner_model.py")
+    shutil.copy(src_custom_path / "xgb_multiclass_aggregator.py", dst_job_path / "app_server" / "custom" / "xgb_multiclass_aggregator.py")
 
     for i in range(1, args.site_num + 1):
         site_name = f"{args.site_name_prefix}{i}"

@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# Generate FL data splits from the 5x-capped federated dataset.
+# Generate FL data splits from the 100x-capped federated dataset.
 #
 # Usage:  bash data_split_gen.sh ./data
 #
 # Inputs  (inside DATA_DIR):
-#   processed/df_federated_100x.csv  — 100x-capped training data (built in notebook)
+#   processed/df_federated_100x.csv   — 100x-capped training data (built in notebook)
 #
 # Outputs (inside DATA_DIR):
-#   processed/vehicle_site-N_train.csv  — one CSV per FL client site
-#   processed/df_server_test.csv        — unique-signature server test set
+#   processed/vehicle_site-N_train.csv  — one CSV per FL client site (train signatures only)
+#   processed/df_server_test.csv        — held-out unique signatures (20% per class, never seen in training)
 #   IoV/data_splits/data_site-N.json    — JSON pointer files for the data loader
 
 DATA_DIR=$(realpath "${1:-./data}")
@@ -30,7 +30,8 @@ python3 utils/prepare_data_split.py \
     --out_path "${OUTPUT_PATH}" \
     --processed_dir "${PROCESSED_DIR}" \
     --alpha_benign 15.0 \
-    --alpha_attack 0.5 \
+    --alpha_attack 0.2 \
+    --test_ratio 0.2 \
     --seed 42
 
 echo "Splits generated in ${OUTPUT_PATH}"
