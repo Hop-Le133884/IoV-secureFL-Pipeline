@@ -10,7 +10,7 @@ SIGNATURE_COLS = ['ID', 'DATA_0', 'DATA_1', 'DATA_2', 'DATA_3', 'DATA_4', 'DATA_
 def data_split_args_parser():
     parser = argparse.ArgumentParser(description="Generate FL data splits from df_federated_100x.csv")
     parser.add_argument("--federated_data_path", type=str, required=True,
-                        help="Path to df_federated_100x.csv (5x-capped training data)")
+                        help="Path to df_federated_100x.csv (100x-capped training data)")
     parser.add_argument("--site_num", type=int, default=5,
                         help="Number of FL client sites")
     parser.add_argument("--site_name_prefix", type=str, default="site-")
@@ -19,20 +19,67 @@ def data_split_args_parser():
     parser.add_argument("--processed_dir", type=str, default=None,
                         help="Directory for vehicle_site-N_train.csv and df_server_test.csv "
                              "(defaults to same directory as federated_data_path)")
+    parser.add_argument("--test_ratio", type=float, default=0.2,
+                        help="Fraction of unique signatures held out for the server test set "
+                             "(default 0.2). Split is done BEFORE augmentation to prevent "
+                             "data leakage — test signatures never appear in training data.")
+    parser.add_argument("--seed", type=int, default=42,
+                        help="Random seed for train/test split and StratifiedKFold")
     return parser
 
 
-def _make_server_test_set(df: pd.DataFrame) -> pd.DataFrame:
-    """Strict per-class deduplication — mirrors the paper's unique-signature benchmark."""
-    classes = df['specific_class'].unique()
-    parts = []
-    print("Building server test set (strict dedup per class):")
-    for cls in sorted(classes):
-        df_cls = df[df['specific_class'] == cls]
-        df_dedup = df_cls.drop_duplicates(subset=SIGNATURE_COLS)
-        print(f"  {cls:16} | 5x-capped: {len(df_cls):>5} → unique: {len(df_dedup):>5}")
-        parts.append(df_dedup)
-    return pd.concat(parts, ignore_index=True)
+def _train_test_split_unique(df: pd.DataFrame, test_ratio: float, seed: int):
+    """
+    Split unique signatures per class into train/test BEFORE augmentation.
+
+    The full df_federated_100x.csv contains each unique signature repeated up to
+    100x. Without this split, the test set would be drawn from the same signatures
+    as the training data — the model would simply be evaluated on its own training
+    patterns, inflating metrics.
+
+    This function:
+      1. Deduplicates df per class to find all unique signatures.
+      2. Holds out `test_ratio` of unique signatures per class as the test set.
+         Minimum 1 test sample and 1 train sample per class regardless of ratio.
+      3. Filters the full (augmented) df to only keep rows whose signature is
+         in the train split — these rows form the FL training pool.
+      4. Returns df_train (augmented, train signatures only) and
+         df_test (deduplicated, held-out signatures only).
+    """
+    rng = np.random.default_rng(seed)
+    train_parts = []
+    test_parts  = []
+
+    print(f"Splitting unique signatures into train/test (test_ratio={test_ratio}, seed={seed}):")
+    for cls in sorted(df['specific_class'].unique()):
+        df_cls   = df[df['specific_class'] == cls]
+        df_dedup = df_cls.drop_duplicates(subset=SIGNATURE_COLS).reset_index(drop=True)
+        n_unique = len(df_dedup)
+
+        n_test  = max(1, round(n_unique * test_ratio))
+        n_test  = min(n_test, n_unique - 1)   # always keep ≥1 train signature
+        n_train = n_unique - n_test
+
+        perm       = rng.permutation(n_unique)
+        test_sigs  = df_dedup.iloc[perm[:n_test]]
+        train_sigs = df_dedup.iloc[perm[n_test:]]
+
+        test_parts.append(test_sigs)
+
+        # Filter augmented rows to train signatures only (merge on signature columns)
+        keep = train_sigs[SIGNATURE_COLS].copy()
+        keep['_keep'] = True
+        df_train_cls = (df_cls
+                        .merge(keep, on=SIGNATURE_COLS, how='inner')
+                        .drop(columns=['_keep']))
+        train_parts.append(df_train_cls)
+
+        print(f"  {cls:16} | unique: {n_unique:>5}  →  train: {n_train:>4}  test: {n_test:>4}"
+              f"  (augmented train rows: {len(df_train_cls):>6})")
+
+    df_train = pd.concat(train_parts, ignore_index=True)
+    df_test  = pd.concat(test_parts,  ignore_index=True)
+    return df_train, df_test
 
 
 def main():
@@ -45,31 +92,33 @@ def main():
     df = pd.read_csv(args.federated_data_path)
     print(f"  Loaded {len(df):,} rows, columns: {df.columns.tolist()}")
 
-    # ── 1. Server test set (unique signatures) ──────────────────────────────
-    df_test = _make_server_test_set(df)
+    # ── 1. Held-out test set (unique signatures never seen during training) ──
+    df_train, df_test = _train_test_split_unique(df, args.test_ratio, args.seed)
     test_path = os.path.join(processed_dir, "df_server_test.csv")
     df_test.to_csv(test_path, index=False)
-    print(f"\nServer test set ({len(df_test):,} unique signatures) → {test_path}")
+    print(f"\nServer test set  ({len(df_test):,} held-out unique signatures) → {test_path}")
+    print(f"FL training pool ({len(df_train):,} augmented rows from train signatures)\n")
 
     # ── 2. Client training shards (StratifiedKFold — IID) ───────────────────
-    skf = StratifiedKFold(n_splits=args.site_num, shuffle=True, random_state=42)
+    skf = StratifiedKFold(n_splits=args.site_num, shuffle=True, random_state=args.seed)
     os.makedirs(args.out_path, exist_ok=True)
 
-    print(f"\nSplitting {len(df):,} rows into {args.site_num} stratified (IID) client shards ...")
-    for shard_idx, (_, fold_idx) in enumerate(skf.split(df, df['specific_class']), 1):
+    print(f"Splitting {len(df_train):,} train rows into {args.site_num} stratified (IID) client shards ...")
+    for shard_idx, (_, fold_idx) in enumerate(skf.split(df_train, df_train['specific_class']), 1):
         site_name = f"{args.site_name_prefix}{shard_idx}"
-        shard = df.iloc[fold_idx].copy()
+        shard = df_train.iloc[fold_idx].copy()
 
         csv_name = f"vehicle_{site_name}_train.csv"
         csv_path = os.path.join(processed_dir, csv_name)
         shard.to_csv(csv_path, index=False)
 
         json_data = {
-            "csv_path": os.path.abspath(csv_path),
+            "csv_path":      os.path.abspath(csv_path),
             "test_csv_path": os.path.abspath(test_path),
-            "site": site_name,
-            "n_rows": len(shard),
-            "class_counts": shard['specific_class'].value_counts().to_dict()
+            "site":          site_name,
+            "n_rows":        len(shard),
+            "test_ratio":    args.test_ratio,
+            "class_counts":  shard['specific_class'].value_counts().to_dict()
         }
         json_path = os.path.join(args.out_path, f"data_{site_name}.json")
         with open(json_path, "w") as f:

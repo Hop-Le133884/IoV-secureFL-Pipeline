@@ -2,13 +2,14 @@
     "csv_path": "/home/hople/working_folder/IoV-secureFL-Pipeline/data/processed/vehicle_site-4_train.csv",
     "test_csv_path": "/home/hople/working_folder/IoV-secureFL-Pipeline/data/processed/df_server_test.csv",
     "site": "site-4",
-    "n_rows": 5426,
+    "n_rows": 4324,
+    "test_ratio": 0.2,
     "class_counts": {
-        "BENIGN": 4662,
-        "DOS": 401,
-        "RPM": 181,
-        "SPEED": 100,
-        "STEERING_WHEEL": 42,
-        "GAS": 40
+        "BENIGN": 3704,
+        "DOS": 320,
+        "RPM": 160,
+        "SPEED": 80,
+        "STEERING_WHEEL": 40,
+        "GAS": 20
     }
 }

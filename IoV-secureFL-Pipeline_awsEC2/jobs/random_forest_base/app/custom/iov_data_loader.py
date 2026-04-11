@@ -54,8 +54,9 @@ class IoVDataLoader(XGBDataLoader):
         prob_attack = global_inner_model.predict(xgb.DMatrix(X_inner))
         self.site_df = self.site_df.copy()
         self.site_df['prob_ATTACK'] = prob_attack
+        self.site_df['prob_BENIGN'] = 1.0 - prob_attack
 
-        augmented_features = FEATURES + ['prob_ATTACK']
+        augmented_features = FEATURES + ['prob_BENIGN', 'prob_ATTACK']
         X_outer = self.site_df[augmented_features]
 
         y_outer = self.site_df['specific_class'].astype(str).map(LABEL_MAP)

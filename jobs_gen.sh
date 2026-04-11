@@ -32,8 +32,8 @@ fi
 
 python3 utils/prepare_job_config.py \
     --site_num 5 \
-    --num_local_parallel_tree 20 \
-    --max_depth 8 \
+    --num_local_parallel_tree 60 \
+    --max_depth 10 \
     --nthread 4 \
     --data_split_root "${DATA_DIR}/IoV/data_splits" \
     --seed "${SEED}" \

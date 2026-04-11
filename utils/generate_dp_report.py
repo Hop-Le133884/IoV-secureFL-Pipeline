@@ -4,9 +4,13 @@ Phase 2 DP Privacy-Utility Tradeoff — Sequential Sweep Runner.
 Runs the full FL pipeline for each epsilon × seed combination sequentially,
 prints all output live, then saves averaged results to CSV.
 
+SEEDS_DEFAULT = [42] # to testing the DP, need seed consistency
+
+For record the honest avg macro f1 score, need seeds "42, 67, 123, 212, 334, 456,789, 865, 1000, 1337"
+
 Usage:
     python utils/generate_dp_report.py --epsilon "inf; 100; 80; 70; 50; 20; 1"
-    python utils/generate_dp_report.py --epsilon "inf; 100" --seeds "42,456,1000"
+    python utils/generate_dp_report.py --epsilon "inf; 100" --seeds "42, 67, 123, 212, 334, 456,789, 865, 1000, 1337"
     python utils/generate_dp_report.py --epsilon "inf; 100" --csv_out reports/dp_tradeoff.csv
 """
 
@@ -20,7 +24,8 @@ import subprocess
 
 JOB_NAME  = "iov_double_rf_5_sites"
 WORKSPACE = "workspace_iov_double_rf"
-SEEDS_DEFAULT = [42, 456, 1000]
+SEEDS_DEFAULT = [42] # to testing the DP, need seed consistency
+# for record the honest avg f1 score need seeds "42, 67, 123, 212, 334, 456,789, 865, 1000, 1337"
 
 
 def sigma_from_epsilon(epsilon, delta=1e-5, clip=5.0):
@@ -135,7 +140,7 @@ def main():
                         help="Semicolon-separated ε values. E.g. \"inf; 100; 50; 1\"")
     parser.add_argument("--seeds", type=str,
                         default=",".join(str(s) for s in SEEDS_DEFAULT),
-                        help="Comma-separated seeds (default: 42,456,1000)")
+                        help="Comma-separated seeds (default: 42)")
     parser.add_argument("--csv_out", type=str, default="reports/dp_tradeoff.csv",
                         help="Output CSV path (default: reports/dp_tradeoff.csv)")
     args = parser.parse_args()

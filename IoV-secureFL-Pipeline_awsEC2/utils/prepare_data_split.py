@@ -10,8 +10,8 @@ BENIGN_CLASS   = 'BENIGN'
 # Non-IID Dirichlet concentration parameters:
 #   BENIGN (majority, 96% of data): higher alpha → more balanced across sites
 #   Attack classes:                 lower alpha  → heterogeneous (sites miss whole classes)
-ALPHA_BENIGN = 2.0
-ALPHA_ATTACK = 0.1
+ALPHA_BENIGN = 15.0
+ALPHA_ATTACK = 0.2
 
 
 def data_split_args_parser():
