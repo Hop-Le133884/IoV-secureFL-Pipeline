@@ -12,6 +12,7 @@
 #   IoV/data_splits/data_site-N.json    — JSON pointer files for the data loader
 
 DATA_DIR=$(realpath "${1:-./data}")
+SEED="${SEED:-42}"
 FEDERATED_DATA="${DATA_DIR}/processed/df_federated_100x.csv"
 OUTPUT_PATH="${DATA_DIR}/IoV/data_splits"
 PROCESSED_DIR="${DATA_DIR}/processed"
@@ -22,7 +23,7 @@ if [ ! -f "${FEDERATED_DATA}" ]; then
     exit 1
 fi
 
-echo "Generating FL data splits from ${FEDERATED_DATA} ..."
+echo "Generating FL data splits from ${FEDERATED_DATA} (seed=${SEED}) ..."
 
 python3 utils/prepare_data_split.py \
     --federated_data_path "${FEDERATED_DATA}" \
@@ -32,7 +33,7 @@ python3 utils/prepare_data_split.py \
     --alpha_benign 15.0 \
     --alpha_attack 0.2 \
     --test_ratio 0.2 \
-    --seed 42
+    --seed "${SEED}"
 
 echo "Splits generated in ${OUTPUT_PATH}"
 echo "Server test set: ${PROCESSED_DIR}/df_server_test.csv"
