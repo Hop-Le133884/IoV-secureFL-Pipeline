@@ -32,8 +32,8 @@ def main():
     print("Generating 'prob_BENIGN' and 'prob_ATTACK' features ...")
     prob_attack = bst_inner.predict(xgb.DMatrix(X_inner))
     df_valid = df_valid.copy()
-    df_valid['prob_ATTACK'] = prob_attack
-    df_valid['prob_BENIGN'] = 1.0 - prob_attack
+    df_valid['prob_ATTACK'] = (prob_attack > 0.5).astype(float)
+    df_valid['prob_BENIGN'] = (prob_attack <= 0.5).astype(float)
 
     augmented_features = FEATURES + ['prob_BENIGN', 'prob_ATTACK']
     X_outer = df_valid[augmented_features]
