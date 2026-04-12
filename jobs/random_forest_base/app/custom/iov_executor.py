@@ -131,7 +131,7 @@ class DoubleRFExecutor(Executor):
                     "num_parallel_tree": self.xgb_params.get("num_local_parallel_tree", 50),
                     "max_depth": self.xgb_params.get("max_depth", 15),
                     "subsample": self.xgb_params.get("local_subsample", 0.8),
-                    "colsample_bynode": self.xgb_params.get("colsample_bynode", 1.0),
+                    "colsample_bynode": self.xgb_params.get("colsample_bynode", 0.7),
                     "learning_rate": 1.0,  # no shrinkage — RF does not shrink trees
                     "nthread": self.xgb_params.get("nthread", 4),
                     "seed": self.seed,
@@ -172,7 +172,7 @@ class DoubleRFExecutor(Executor):
                     "num_parallel_tree": self.xgb_params.get("num_local_parallel_tree", 50),
                     "max_depth": self.xgb_params.get("max_depth", 15),
                     "subsample": self.xgb_params.get("local_subsample", 0.8),
-                    "colsample_bynode": self.xgb_params.get("colsample_bynode", 1.0),
+                    "colsample_bynode": self.xgb_params.get("colsample_bynode", 0.7),
                     "learning_rate": 1.0,  # no shrinkage — RF does not shrink trees
                     "nthread": self.xgb_params.get("nthread", 4),
                     "seed": self.seed,
