@@ -16,7 +16,7 @@ def job_config_args_parser():
     parser.add_argument("--num_local_parallel_tree", type=int, default=20, help="Trees per stage per site")
     parser.add_argument("--max_depth", type=int, default=8, help="Maximum depth of a tree")
     parser.add_argument("--local_subsample", type=float, default=0.8, help="Row subsample rate per tree (RF bagging)")
-    parser.add_argument("--colsample_bynode", type=float, default=0.8, help="Feature subsample rate per split (RF feature randomness)")
+    parser.add_argument("--colsample_bynode", type=float, default=1.0, help="Feature subsample rate per split (RF feature randomness)")
     parser.add_argument("--nthread", type=int, default=4, help="nthread for xgboost")
     parser.add_argument("--dp_epsilon", type=float, default=None, help="DP privacy budget ε (None = no DP)")
     parser.add_argument("--dp_delta", type=float, default=1e-5, help="DP failure probability δ")

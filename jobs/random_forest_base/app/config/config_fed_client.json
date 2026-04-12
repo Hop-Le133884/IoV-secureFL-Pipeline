@@ -8,10 +8,10 @@
         "path": "iov_executor.DoubleRFExecutor",
         "args": {
           "data_loader_id": "dataloader",
-          "num_local_parallel_tree": 20,
-          "max_depth": 8,
+          "num_local_parallel_tree": 50,
+          "max_depth": 15,
           "local_subsample": 0.8,
-          "colsample_bynode": 0.8,
+          "colsample_bynode": 1.0,
           "nthread": 4,
           "dp_epsilon": null,
           "dp_delta": 1e-5,
