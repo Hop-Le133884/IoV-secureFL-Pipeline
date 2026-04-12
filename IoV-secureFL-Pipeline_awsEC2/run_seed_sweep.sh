@@ -17,6 +17,7 @@ set -euo pipefail
 REPO="$(realpath "$(dirname "$0")")"
 cd "${REPO}"
 
+
 SEED="${1:-${SEED:-}}"
 if [[ -z "${SEED}" ]]; then
     echo "Error: SEED is required." >&2
@@ -42,4 +43,3 @@ echo "Done. Next steps:"
 echo "  1. Submit the new job via the admin console"
 echo "  2. Wait for completion"
 echo "  3. Run: bash evaluate.sh <job_id>"
-
