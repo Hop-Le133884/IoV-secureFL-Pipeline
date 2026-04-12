@@ -55,7 +55,8 @@ def _train_test_split_unique(df: pd.DataFrame, test_ratio: float, seed: int):
       3. Filters the full (augmented) df to only keep rows whose signature is
          in the train split — these rows form the FL training pool.
       4. Returns df_train (augmented, train signatures only) and
-         df_test (deduplicated, held-out signatures only).
+         df_test (all raw rows from held-out signatures — mirrors real-world
+         deployment where the same CAN frame pattern appears multiple times).
     """
     rng = np.random.default_rng(seed)
     train_parts = []
@@ -75,7 +76,16 @@ def _train_test_split_unique(df: pd.DataFrame, test_ratio: float, seed: int):
         test_sigs  = df_dedup.iloc[perm[:n_test]]
         train_sigs = df_dedup.iloc[perm[n_test:]]
 
-        test_parts.append(test_sigs)
+        # Expand test set to ALL raw rows whose signature is in the held-out split.
+        # Mirrors real-world deployment: the model sees repeated instances of the
+        # same CAN frame pattern, not just one deduplicated row.
+        # No leakage: test signatures are disjoint from train signatures.
+        keep_test = test_sigs[SIGNATURE_COLS].copy()
+        keep_test['_keep'] = True
+        df_test_cls = (df_cls
+                       .merge(keep_test, on=SIGNATURE_COLS, how='inner')
+                       .drop(columns=['_keep']))
+        test_parts.append(df_test_cls)
 
         # Filter augmented rows to train signatures only (merge on signature columns)
         keep = train_sigs[SIGNATURE_COLS].copy()
@@ -86,7 +96,7 @@ def _train_test_split_unique(df: pd.DataFrame, test_ratio: float, seed: int):
         train_parts.append(df_train_cls)
 
         print(f"  {cls:16} | unique: {n_unique:>5}  →  train: {n_train:>4}  test: {n_test:>4}"
-              f"  (augmented train rows: {len(df_train_cls):>6})")
+              f"  (train rows: {len(df_train_cls):>6}, test rows: {len(df_test_cls):>6})")
 
     df_train = pd.concat(train_parts, ignore_index=True)
     df_test  = pd.concat(test_parts,  ignore_index=True)
@@ -159,7 +169,7 @@ def main():
     df_train, df_test = _train_test_split_unique(df, args.test_ratio, args.seed)
     test_path = os.path.join(processed_dir, "df_server_test.csv")
     df_test.to_csv(test_path, index=False)
-    print(f"\nServer test set  ({len(df_test):,} held-out unique signatures) → {test_path}")
+    print(f"\nServer test set  ({len(df_test):,} rows from held-out signatures) → {test_path}")
     print(f"FL training pool ({len(df_train):,} augmented rows from train signatures)\n")
 
     # ── 2. Non-IID Dirichlet client shards (from train pool only) ───────────
