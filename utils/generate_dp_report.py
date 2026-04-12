@@ -66,21 +66,28 @@ def run_one(epsilon, seed):
     else:
         env["DP_EPSILON"] = str(epsilon)
 
-    # Step 1: jobs_gen — output goes directly to terminal
-    print("\n--- Step 1/3: jobs_gen.sh ---")
+    # Step 1: data_split_gen — regenerate train/test splits for this seed
+    # Each seed holds out different unique signatures → real data variance
+    print("\n--- Step 1/4: data_split_gen.sh ---")
+    r = subprocess.run(["bash", "data_split_gen.sh", "./data"], env=env)
+    if r.returncode != 0:
+        raise RuntimeError("data_split_gen.sh failed")
+
+    # Step 2: jobs_gen — output goes directly to terminal
+    print("\n--- Step 2/4: jobs_gen.sh ---")
     r = subprocess.run(["bash", "jobs_gen.sh", "./data"], env=env)
     if r.returncode != 0:
         raise RuntimeError("jobs_gen.sh failed")
 
-    # Step 2: NVFlare simulation — output goes directly to terminal
-    print("\n--- Step 2/3: run_experiment_simulator.sh ---")
+    # Step 3: NVFlare simulation — output goes directly to terminal
+    print("\n--- Step 3/4: run_experiment_simulator.sh ---")
     r = subprocess.run(["bash", "run_experiment_simulator.sh"], env=env)
     if r.returncode != 0:
         cleanup()
         raise RuntimeError("run_experiment_simulator.sh failed")
 
-    # Step 3: Validation — capture to parse F1/Acc, then print
-    print("\n--- Step 3/3: model_validation.py ---")
+    # Step 4: Validation — capture to parse F1/Acc, then print
+    print("\n--- Step 4/4: model_validation.py ---")
     r = subprocess.run(
         ["python", "utils/model_validation.py"], env=env,
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
@@ -141,8 +148,8 @@ def main():
     parser.add_argument("--seeds", type=str,
                         default=",".join(str(s) for s in SEEDS_DEFAULT),
                         help="Comma-separated seeds (default: 42)")
-    parser.add_argument("--csv_out", type=str, default="reports/dp_tradeoff.csv",
-                        help="Output CSV path (default: reports/dp_tradeoff.csv)")
+    parser.add_argument("--csv_out", type=str, default="DP_SEED_report/dp_tradeoff.csv",
+                        help="Output CSV path (default: DP_SEED_report/dp_tradeoff.csv)")
     args = parser.parse_args()
 
     epsilons = parse_epsilons(args.epsilon)
