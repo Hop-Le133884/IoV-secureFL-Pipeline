@@ -12,7 +12,7 @@
 #   IoV/data_splits/data_site-N.json    — JSON pointer files for the data loader
 
 DATA_DIR=$(realpath "${1:-./data}")
-SEED="${SEED:-42}"
+SEED="${SEED:-}"
 FEDERATED_DATA="${DATA_DIR}/processed/df_federated_100x.csv"
 OUTPUT_PATH="${DATA_DIR}/IoV/data_splits"
 PROCESSED_DIR="${DATA_DIR}/processed"

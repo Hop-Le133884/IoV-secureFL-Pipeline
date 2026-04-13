@@ -3,7 +3,7 @@
 source .venv/bin/activate
 MASTER_IP=$(hostname -I | awk '{print $1}')
 
-CORE_IPS=("172.31.0.97" "172.31.0.242" "172.31.0.73" "172.31.0.69" "172.31.0.9")
+CORE_IPS=("172.31.0.13" "172.31.0.31" "172.31.0.198" "172.31.0.56" "172.31.0.102")
 
 echo "Generating project.yml for Master Server IP: $MASTER_IP"
 

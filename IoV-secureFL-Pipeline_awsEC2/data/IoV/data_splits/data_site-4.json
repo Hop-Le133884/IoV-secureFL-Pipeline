@@ -1,0 +1,16 @@
+{
+    "csv_path": "/home/ubuntu/IoV-secureFL-Pipeline_awsEC2/data/processed/vehicle_site-4_train.csv",
+    "test_csv_path": "/home/ubuntu/IoV-secureFL-Pipeline_awsEC2/data/processed/df_server_test.csv",
+    "site": "site-4",
+    "n_rows": 6380,
+    "alpha_benign": 15.0,
+    "alpha_attack": 0.2,
+    "test_ratio": 0.2,
+    "class_counts": {
+        "BENIGN": 5893,
+        "SPEED": 265,
+        "STEERING_WHEEL": 121,
+        "GAS": 51,
+        "DOS": 50
+    }
+}

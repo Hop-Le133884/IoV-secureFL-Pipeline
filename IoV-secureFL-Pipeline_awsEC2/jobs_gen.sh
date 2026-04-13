@@ -50,7 +50,7 @@ echo "Jobs synced to admin transfer directory: ${TRANSFER_DIR}"
 REPO_ROOT="$(realpath "$(dirname "$0")")"
 SPLITS_DIR="${DATA_DIR}/IoV/data_splits"
 
-CORE_IPS=("172.31.0.97" "172.31.0.242" "172.31.0.73" "172.31.0.69" "172.31.0.9")
+CORE_IPS=("172.31.0.13" "172.31.0.31" "172.31.0.198" "172.31.0.56" "172.31.0.102")
 
 echo "Fixing data split paths and syncing to client nodes..."
 for f in "${SPLITS_DIR}"/data_site-*.json; do

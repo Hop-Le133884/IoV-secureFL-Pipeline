@@ -4,7 +4,9 @@
 # Run ONCE before first seed:
 #   bash fleet_deployment.sh    ← installs venv + packages on all clients
 #   bash network_provision.sh   ← generates certs, start server + admin
-#
+#   connect to server, admin and run clients to start this seed sweep
+
+# SEED: "43, 123, 456, 789, 1234, 2025, 515, 197, 314, 1000"
 # Then for each seed (including the first):
 #   SEED=42  bash run_seed_sweep.sh
 #   SEED=123 bash run_seed_sweep.sh

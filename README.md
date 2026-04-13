@@ -5,11 +5,23 @@
 
 A production-ready machine learning pipeline featuring a novel **Federated Double Random Forest (Double RF)** architecture. This project implements a comprehensive security analysis pipeline for Internet of Vehicles (IoV) networks. By leveraging a two-stage federated ensemble method, vehicles can collaboratively train highly accurate Intrusion Detection Systems (IDS) without ever centralizing sensitive Controller Area Network (CAN) bus logs.
 
+
+
 | Phase | Description | Status |
 |-------|-------------|--------|
 | **Phase 1** | Centralized Baseline & Double RF Prototyping | Complete |
+
+![alt text](Double_RF.png)
+
+![alt text](image.png)
+
 | **Phase 2** | Privacy-Preserving Federated Double Random Forest (NVFlare + XGBoost) | Complete |
+
+![alt text](DP_SEED_report/seeds_comparing.png)
+
 | **Phase 3** | Real Distributed Deployment (AWS EC2 + S3, Non-IID) | Complete |
+
+![alt text](IoV-secureFL-Pipeline_awsEC2/randomSEED_report/seed_sweep_f1.png)
 
 ---
 
