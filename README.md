@@ -15,10 +15,12 @@ A production-ready machine learning pipeline featuring a novel **Federated Doubl
 
 ![alt text](image.png)
 
+|-------|-------------|--------|
 | **Phase 2** | Privacy-Preserving Federated Double Random Forest (NVFlare + XGBoost) | Complete |
 
 ![alt text](DP_SEED_report/seeds_comparing.png)
 
+|-------|-------------|--------|
 | **Phase 3** | Real Distributed Deployment (AWS EC2 + S3, Non-IID) | Complete |
 
 ![alt text](IoV-secureFL-Pipeline_awsEC2/randomSEED_report/seed_sweep_f1.png)
