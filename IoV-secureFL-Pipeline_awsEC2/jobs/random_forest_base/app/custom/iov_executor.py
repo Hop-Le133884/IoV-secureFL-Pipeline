@@ -128,10 +128,10 @@ class DoubleRFExecutor(Executor):
                     "objective": "binary:logistic",
                     "tree_method": self.xgb_params.get("tree_method", "hist"),
                     # XGBoost RF mode: one bagging round of num_parallel_tree trees
-                    "num_parallel_tree": self.xgb_params.get("num_local_parallel_tree", 50),
-                    "max_depth": self.xgb_params.get("max_depth", 15),
-                    "subsample": self.xgb_params.get("local_subsample", 0.8),
-                    "colsample_bynode": self.xgb_params.get("colsample_bynode", 0.7),
+                    "num_parallel_tree": self.xgb_params.get("num_local_parallel_tree", 20),
+                    "max_depth": self.xgb_params.get("max_depth", 20),
+                    "subsample": self.xgb_params.get("local_subsample", 1),
+                    "colsample_bynode": self.xgb_params.get("colsample_bynode", 0.8),
                     "learning_rate": 1.0,  # no shrinkage — RF does not shrink trees
                     "nthread": self.xgb_params.get("nthread", 4),
                     "seed": self.seed,
@@ -171,10 +171,10 @@ class DoubleRFExecutor(Executor):
                     "num_class": 6,
                     "tree_method": self.xgb_params.get("tree_method", "hist"),
                     # XGBoost RF mode: one bagging round of num_parallel_tree trees
-                    "num_parallel_tree": self.xgb_params.get("num_local_parallel_tree", 50),
+                    "num_parallel_tree": self.xgb_params.get("num_local_parallel_tree", 30),
                     "max_depth": self.xgb_params.get("max_depth", 15),
                     "subsample": self.xgb_params.get("local_subsample", 0.8),
-                    "colsample_bynode": self.xgb_params.get("colsample_bynode", 0.7),
+                    "colsample_bynode": self.xgb_params.get("colsample_bynode", 0.8),
                     "learning_rate": 1.0,
                     "nthread": self.xgb_params.get("nthread", 4),
                     "seed": self.seed,

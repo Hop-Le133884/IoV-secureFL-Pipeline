@@ -16,7 +16,7 @@ OUTPNG = HERE / "../DP_SEED_report/seeds_comparing.png"
 df = pd.read_csv(CSV)
 row = df.iloc[0]
 
-SEEDS = [42, 123, 456, 789, 1234, 2025, 99, 7, 314, 1000]
+SEEDS = [42, 123, 456, 789, 1234, 2025, 515, 197, 314, 1000]
 f1s   = [row[f"f1_seed_{s}"]  for s in SEEDS]
 accs  = [row[f"acc_seed_{s}"] for s in SEEDS]
 

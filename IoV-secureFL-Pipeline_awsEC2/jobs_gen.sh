@@ -31,10 +31,6 @@ if [ -n "${JOB_NAME_OVERRIDE}" ]; then
 fi
 
 python3 utils/prepare_job_config.py \
-    --site_num 5 \
-    --num_local_parallel_tree 40 \
-    --max_depth 15 \
-    --nthread 4 \
     --data_split_root "${DATA_DIR}/IoV/data_splits" \
     --seed "${SEED}" \
     ${DP_ARGS} \
