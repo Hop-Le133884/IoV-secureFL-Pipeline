@@ -115,7 +115,7 @@ Launch **6 instances** total: 1 master server + 5 vehicle clients.
 1. EC2 → **Launch Instance**
 2. **AMI**: Ubuntu Server 22.04 LTS (64-bit x86)
 3. **Instance type**:
-   - Master server: `5.xlarge` (or testing on lower config)
+   - Master server: `5.large` (or testing on lower config)
    - Vehicle clients: `m4.large` (or testing on lower config)
 4. **Key pair**: `iov-dp-key`
 5. **Network**: select your VPC and subnet
@@ -476,6 +476,113 @@ bash workspace/iov_securefl_network/prod_00/admin@master.com/startup/fl_admin.sh
 
 ---
 
+## Part 6 — Multi-Seed Sweep
+
+Runs the full FL pipeline across multiple random seeds to measure result variance.
+Each seed produces a fresh train/test split and a new XGBoost RNG, so results reflect true generalization rather than a single lucky configuration.
+
+### Prerequisites (run once before the first seed)
+
+```bash
+# 1. Bootstrap all 5 clients (installs venv + packages)
+bash fleet_deployment.sh
+
+# 2. Provision NVFlare network (certs + startup kits)
+bash network_provision.sh
+
+# 3. Start FL server
+bash workspace/iov_securefl_network/prod_00/server/startup/start.sh
+
+# 4. Start all 5 clients
+bash start_fleet.sh
+```
+
+Server and clients stay running across all seeds — no need to restart between seeds.
+
+### Seeds Used
+
+```
+42  123  456  789  1000  314  7  99  1234  2000
+```
+
+### Per-Seed Loop
+
+Repeat these 4 steps for each seed:
+
+**Step 1 — Prepare data splits + job config:**
+
+```bash
+SEED=42 bash run_seed_sweep.sh
+```
+
+This runs three sub-steps automatically:
+```
+[1/3] SEED=42 bash data_split_gen.sh ./data   ← new train/test signature split
+[2/3] bash deploy_data.sh                      ← push new CSVs to all 5 clients
+[3/3] DP_EPSILON=80 SEED=42 bash jobs_gen.sh  ← generate + deploy NVFlare job config
+```
+
+**Step 2 — Submit the job (admin console):**
+
+```bash
+bash workspace/iov_securefl_network/prod_00/admin@master.com/startup/fl_admin.sh
+# User Name: admin@master.com
+```
+
+```
+> submit_job iov_double_rf_5_sites
+> check_status server
+```
+
+**Step 3 — Wait for completion:**
+
+```bash
+bash monitor_fleet.sh live 1    # watch site-1 training log
+```
+
+Job is done when server log shows:
+```
+Saving received model to .../xgboost_model_outer.json
+```
+
+**Step 4 — Evaluate and record results:**
+
+```bash
+bash evaluate.sh
+```
+
+Appends accuracy, LogLoss, Macro F1, and per-class metrics to `randomSEED_report/SEEDs_report.csv`.
+
+---
+
+**Repeat Steps 1–4 for each seed.**
+
+---
+
+### Full 10-Seed Reference
+
+```bash
+for SEED in 42 123 456 789 1000 314 7 99 1234 2000; do
+    echo "=== Preparing SEED=${SEED} ==="
+    SEED=${SEED} bash run_seed_sweep.sh
+    echo "Submit job in admin console, wait for completion, then press ENTER..."
+    read -r
+    bash evaluate.sh
+done
+```
+
+### Visualize Results
+
+After all seeds are complete:
+
+```bash
+python3 utils/plot_seed_sweep.py
+```
+
+Reads `randomSEED_report/SEEDs_report.csv` and saves `randomSEED_report/seed_sweep_f1.png` — a bar chart of Macro F1 per seed with mean ± std annotation.
+
+---
+
 ## Non-IID Data Distribution Strategy
 
 Real-world IoV deployments are inherently non-IID: vehicles on different routes encounter
@@ -635,10 +742,14 @@ IoV-secureFL-Pipeline_awsEC2/
 ├── models/                         # Extracted global models (after evaluate.sh)
 │   ├── xgboost_model_inner.json
 │   └── xgboost_model_outer.json
+├── randomSEED_report/              # Seed sweep results (generated)
+│   ├── SEEDs_report.csv            # Per-seed metrics (appended by evaluate.sh)
+│   └── seed_sweep_f1.png           # Bar chart of Macro F1 per seed (generated)
 ├── utils/
 │   ├── prepare_data_split.py       # Dirichlet data partitioning
 │   ├── prepare_job_config.py       # NVFlare job config generator
-│   └── model_validation.py         # Evaluation script
+│   ├── model_validation.py         # Evaluation script
+│   └── plot_seed_sweep.py          # Seed sweep F1 bar chart
 ├── workspace/                      # NVFlare provisioned workspace (generated)
 │   └── iov_securefl_network/
 │       └── prod_00/
@@ -648,12 +759,14 @@ IoV-secureFL-Pipeline_awsEC2/
 ├── cleansing_job.sh    # Clean master node artifacts
 ├── clean_fleet.sh      # Wipe all 5 client nodes
 ├── fleet_deployment.sh # Bootstrap + sync all client nodes
+├── deploy_data.sh      # Push per-seed training CSVs to clients (no reinstall)
 ├── data_split_gen.sh   # Generate FL data splits
 ├── network_provision.sh # NVFlare provisioning + cert distribution
 ├── jobs_gen.sh         # Generate job config + deploy to transfer dir
+├── run_seed_sweep.sh   # Orchestrate one seed: splits → deploy → job config
 ├── start_fleet.sh      # Start NVFlare clients on all 5 EC2 nodes
 ├── monitor_fleet.sh    # Monitor client training output
-├── evaluate.sh         # Extract models + run evaluation
+├── evaluate.sh         # Extract models + append metrics to SEEDs_report.csv
 └── pyproject.toml      # Python dependencies (managed by uv)
 ```
 
