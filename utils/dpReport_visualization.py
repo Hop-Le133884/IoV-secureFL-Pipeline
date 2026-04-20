@@ -75,7 +75,6 @@ def make_plot(rows, out_path):
                     ha="center", fontsize=8, color="steelblue")
 
     ax.set_xscale("log")
-    ax.invert_xaxis()
     ax.set_xlabel("Privacy Budget ε  (← stronger privacy | weaker privacy →)", fontsize=10)
     ax.set_ylabel("Score (%)", fontsize=10)
     ax.set_title("Utility vs Privacy Budget (ε)", fontsize=11)
@@ -114,14 +113,14 @@ def make_plot(rows, out_path):
 
 def main():
     parser = argparse.ArgumentParser(description="Plot DP tradeoff from CSV report")
-    parser.add_argument("--csv", type=str, default="reports/dp_tradeoff.csv",
-                        help="Path to dp_tradeoff.csv (default: reports/dp_tradeoff.csv)")
-    parser.add_argument("--out", type=str, default="reports/dp_tradeoff.png",
-                        help="Output image path (default: reports/dp_tradeoff.png)")
+    parser.add_argument("--csv", type=str, default="DP_SEED_report/dp_tradeoff.csv",
+                        help="Path to dp_tradeoff.csv (default: DP_SEED_report/dp_tradeoff.csv)")
+    parser.add_argument("--out", type=str, default="DP_SEED_report/dp_tradeoff.png",
+                        help="Output image path (default: DP_SEED_report/dp_tradeoff.png)")
     args = parser.parse_args()
 
     if not os.path.exists(args.csv):
-        print(f"Error: {args.csv} not found. Run generate_dp_report.py first.")
+        print(f"Error: {args.csv} not found.")
         raise SystemExit(1)
 
     rows = load_csv(args.csv)

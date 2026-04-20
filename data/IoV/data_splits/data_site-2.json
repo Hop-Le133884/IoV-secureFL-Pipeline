@@ -2,10 +2,10 @@
     "csv_path": "/home/hople/working_folder/IoV-secureFL-Pipeline/data/processed/vehicle_site-2_train.csv",
     "test_csv_path": "/home/hople/working_folder/IoV-secureFL-Pipeline/data/processed/df_server_test.csv",
     "site": "site-2",
-    "n_rows": 4161,
+    "n_rows": 4441,
     "test_ratio": 0.2,
     "class_counts": {
-        "BENIGN": 3559,
+        "BENIGN": 3839,
         "DOS": 321,
         "RPM": 141,
         "SPEED": 80,
