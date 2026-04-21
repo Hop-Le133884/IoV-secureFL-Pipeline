@@ -136,6 +136,7 @@ start_fleet.sh        → CORE_IPS
 clean_fleet.sh        → CORE_IPS
 monitor_fleet.sh      → CORE_IPS
 jobs_gen.sh           → CORE_IPS
+deply_data.sh         → CORE_IPS 
 ```
 
 Current configured IPs (update these):
@@ -530,7 +531,7 @@ bash workspace/iov_securefl_network/prod_00/admin@master.com/startup/fl_admin.sh
 ```
 
 ```
-> submit_job iov_double_rf_5_sites
+> submit_job jobs/iov_double_rf_5_sites
 > check_status server
 ```
 
@@ -548,7 +549,7 @@ Saving received model to .../xgboost_model_outer.json
 **Step 4 — Evaluate and record results:**
 
 ```bash
-bash evaluate.sh
+bash evaluate.sh <jobID>
 ```
 
 Appends accuracy, LogLoss, Macro F1, and per-class metrics to `randomSEED_report/SEEDs_report.csv`.
