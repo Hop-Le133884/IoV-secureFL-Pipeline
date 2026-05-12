@@ -17,6 +17,8 @@ data/IoV/*.csv
 IoV-secureFL-Pipeline_awsEC2S3/data/processed/*.csv
 IoV-secureFL-Pipeline_awsEC2S3/data/raw/*.csv
 IoV-secureFL-Pipeline_awsEC2S3/data/IoV/*.csv
+nvflare_issue_body.md
+
 
 # virtual environment
 .venv/
@@ -25,7 +27,4 @@ uv.lock
 # secret aws keys
 #IoV-secureFL-Pipeline_awsEC2S3/ec2Key/*.pem
 IoV-secureFL-Pipeline_awsEC2/ec2Key/iov-dp-key.pem
-reports/research_paper_draft.md
-SecureFL-IoV-POSTER.pdf
 reproducing_bug1.py
-nvflare_issue_body.md
