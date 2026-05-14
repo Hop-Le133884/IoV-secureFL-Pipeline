@@ -11,7 +11,7 @@ BENIGN_CLASS   = 'BENIGN'
 #   BENIGN (majority, 96% of data): higher alpha → more balanced across sites
 #   Attack classes:                 lower alpha  → heterogeneous (sites miss whole classes)
 ALPHA_BENIGN = 15.0
-ALPHA_ATTACK = 0.2
+ALPHA_ATTACK = 0.5
 
 
 def data_split_args_parser():
@@ -107,7 +107,7 @@ def dirichlet_noniid_split(df, n_sites, alpha_benign, alpha_attack, seed):
     """
     Non-IID split using class-specific Dirichlet concentration.
 
-    BENIGN uses alpha_benign (15.0) — high alpha keeps BENIGN roughly balanced
+    BENIGN uses alpha_benign (15.0) — high alpha keeps BENIGN near-uniform across sites
     across sites, avoiding pathological splits (e.g. one site getting 16 rows).
 
     Attack classes use alpha_attack (0.5) — low alpha makes each site specialise

@@ -292,7 +292,7 @@ Deploys the same Double RF pipeline on real distributed AWS EC2 infrastructure w
 ## Non-IID Split Design
 
 Uses **class-specific Dirichlet concentration**:
-- **BENIGN (α=2.0)** — majority class (~96% of data); higher α prevents pathological near-zero splits at any site
+- **BENIGN (α=15.0)** — majority class (~96% of data); near-uniform distribution keeps normal traffic stable so heterogeneity is isolated to attack classes only
 - **Attack classes (α=0.5)** — heterogeneous by design; some sites intentionally receive zero samples of certain attack types, forcing the federation to learn globally what no single vehicle knows locally
 
 ## Quick Execution Reference

@@ -31,7 +31,7 @@ python3 utils/prepare_data_split.py \
     --out_path "${OUTPUT_PATH}" \
     --processed_dir "${PROCESSED_DIR}" \
     --alpha_benign 15.0 \
-    --alpha_attack 0.2 \
+    --alpha_attack 0.5 \
     --test_ratio 0.2 \
     --seed "${SEED}"
 

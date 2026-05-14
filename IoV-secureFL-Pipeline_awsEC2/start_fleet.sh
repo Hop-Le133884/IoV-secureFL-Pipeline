@@ -4,7 +4,7 @@ source .venv/bin/activate
 
 SERVER_IP=$(hostname -I | awk '{print $1}')
 
-CORE_IPS=("172.31.0.72" "172.31.0.229" "172.31.0.147" "172.31.0.135" "172.31.0.246")
+source "$(dirname "$0")/fleet_ips.sh"
 
 SITE_NUM=1
 

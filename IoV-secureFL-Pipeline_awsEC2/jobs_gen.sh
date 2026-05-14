@@ -9,7 +9,7 @@ DATA_DIR=$(realpath "${1:-./data}")
 #   SEED=123       bash jobs_gen.sh ./data   → set random seed (default: 42)
 DP_EPSILON="${DP_EPSILON:-}"        # privacy budget ε — empty = no DP
 DP_DELTA="${DP_DELTA:-1e-5}"        # failure probability δ
-DP_CLIP_BOUND="${DP_CLIP_BOUND:-5.0}"  # leaf clipping bound C
+DP_CLIP_BOUND="${DP_CLIP_BOUND:-1.1}"  # leaf clipping bound C
 SEED="${SEED:-42}"                  # random seed for XGBoost and DP noise
 JOB_NAME_OVERRIDE="${JOB_NAME:-}"   # override job name (set by run_dp_sweep.sh)
 
@@ -50,7 +50,7 @@ echo "Jobs synced to admin transfer directory: ${TRANSFER_DIR}"
 REPO_ROOT="$(realpath "$(dirname "$0")")"
 SPLITS_DIR="${DATA_DIR}/IoV/data_splits"
 
-CORE_IPS=("172.31.0.72" "172.31.0.229" "172.31.0.147" "172.31.0.135" "172.31.0.246")
+source "$(dirname "$0")/fleet_ips.sh"
 
 echo "Fixing data split paths and syncing to client nodes..."
 for f in "${SPLITS_DIR}"/data_site-*.json; do

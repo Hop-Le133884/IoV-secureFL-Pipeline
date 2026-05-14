@@ -6,7 +6,7 @@
 #   bash network_provision.sh   ← generates certs, start server + admin
 #   connect to server, admin and run clients to start this seed sweep
 
-# SEED: "43, 123, 456, 789, 1234, 2025, 515, 197, 314, 1000"
+# SEED: "42, 123, 456, 789, 1000, 1542, 9, 342, 691, 2000"
 # Then for each seed (including the first):
 #   SEED=42  bash run_seed_sweep.sh
 #   SEED=123 bash run_seed_sweep.sh
@@ -27,9 +27,10 @@ if [[ -z "${SEED}" ]]; then
     echo "   or: bash run_seed_sweep.sh 42" >&2
     exit 1
 fi
-DP_EPSILON="${DP_EPSILON:-80}"
+DP_EPSILON="${DP_EPSILON:-20}"
+DP_CLIP_BOUND="${DP_CLIP_BOUND:-1.1}"
 
-echo "=== SEED=${SEED} | ε=${DP_EPSILON} ==="
+echo "=== SEED=${SEED} | ε=${DP_EPSILON} | C=${DP_CLIP_BOUND} ==="
 
 echo "  [1/3] Generating data splits (new train/test signature split) ..."
 SEED=${SEED} bash data_split_gen.sh ./data
@@ -38,7 +39,7 @@ echo "  [2/3] Deploying new training CSVs to fleet ..."
 bash deploy_data.sh
 
 echo "  [3/3] Generating job config ..."
-DP_EPSILON=${DP_EPSILON} SEED=${SEED} bash jobs_gen.sh ./data
+DP_EPSILON=${DP_EPSILON} DP_CLIP_BOUND=${DP_CLIP_BOUND} SEED=${SEED} bash jobs_gen.sh ./data
 
 echo ""
 echo "Done. Next steps:"

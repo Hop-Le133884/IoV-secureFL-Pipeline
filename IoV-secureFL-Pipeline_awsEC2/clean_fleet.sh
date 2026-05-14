@@ -3,9 +3,8 @@
 # After this, run fleet_deployment.sh to re-bootstrap before start_fleet.sh.
 # Usage: ./clean_fleet.sh
 
-KEY=ec2Key/iov-dp-key.pem
-
-CORE_IPS=("172.31.0.72" "172.31.0.229" "172.31.0.147" "172.31.0.135" "172.31.0.246")
+source "$(dirname "$0")/fleet_ips.sh"
+KEY="${SSH_KEY}"
 
 
 SITE_NUM=1

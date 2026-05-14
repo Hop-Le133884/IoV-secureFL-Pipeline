@@ -4,7 +4,7 @@ import numpy as np
 from pathlib import Path
 
 HERE   = Path(__file__).parent
-SEEDS  = [42, 123, 456, 1000, 314, 7, 99, 789, 1234, 2000]
+SEEDS  = [42, 123, 456, 789, 1000, 1542, 9, 342, 691, 2000]
 CSV    = HERE / "../randomSEED_report/SEEDs_report.csv"
 OUTPNG = HERE / "../randomSEED_report/seed_sweep_f1.png"
 
@@ -25,7 +25,7 @@ for bar, val in zip(bars, values):
 
 ax.axhline(avg, color="tomato", linestyle="--", linewidth=1.2, alpha=0.7)
 ax.set_ylabel("Macro F1 Score (%)")
-ax.set_title("FL + DP (ε=80) — Macro F1 Across 10 Seeds\n"
+ax.set_title("FL + DP (ε=20, C=1.1) — Macro F1 Across 10 Seeds\n"
              f"Mean = {avg:.2f}%  |  Std = {np.std(f1s):.2f}%")
 ax.set_ylim(max(0, min(values) - 5), min(100, max(values) + 5))
 ax.tick_params(axis="x", rotation=20)

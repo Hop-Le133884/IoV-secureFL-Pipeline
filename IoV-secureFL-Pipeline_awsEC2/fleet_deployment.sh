@@ -10,11 +10,8 @@
 #   data/IoV/data_splits/data_site-N.json — jobs_gen.sh
 #   iov_executor.py, iov_data_loader.py  — sent by NVFlare at job runtime
 
-CORE_IPS=("172.31.0.113" "172.31.0.59" "172.31.0.11" "172.31.0.45" "172.31.0.157")
-
 REPO_ROOT="$(realpath "$(dirname "$0")")"
-SSH_KEY="${REPO_ROOT}/ec2Key/iov-dp-key.pem"
-SSH_OPTS="-i ${SSH_KEY} -o StrictHostKeyChecking=no"
+source "${REPO_ROOT}/fleet_ips.sh"
 
 SITE_NUM=1
 for IP in "${CORE_IPS[@]}"; do

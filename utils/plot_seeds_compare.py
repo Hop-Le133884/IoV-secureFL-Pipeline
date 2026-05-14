@@ -9,8 +9,8 @@ import numpy as np
 from pathlib import Path
 
 HERE   = Path(__file__).parent
-CSV    = HERE / "../DP_SEED_report/seeds_comparing_v1.csv"
-OUTPNG = HERE / "../DP_SEED_report/seeds_comparing_v1.png"
+CSV    = HERE / "../DP_SEED_report/seeds_comparing_v2.csv"
+OUTPNG = HERE / "../DP_SEED_report/seeds_comparing_v2.png"
 
 # ── Load ──────────────────────────────────────────────────────────────────────
 df = pd.read_csv(CSV)

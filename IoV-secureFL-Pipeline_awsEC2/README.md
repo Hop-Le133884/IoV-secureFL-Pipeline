@@ -1,7 +1,7 @@
 # IoV Secure Federated Learning Pipeline — AWS EC2
 
 A privacy-preserving Federated Learning pipeline for Internet-of-Vehicles (IoV) intrusion detection.
-Uses **NVIDIA FLARE (NVFlare)** with a **Double Random Forest** (XGBoost, two-stage) trained across 5 EC2 vehicle nodes, protected by **Differential Privacy** (Gaussian mechanism, ε=80, δ=1e-5).
+Uses **NVIDIA FLARE (NVFlare)** with a **Double Random Forest** (XGBoost, two-stage) trained across 5 EC2 vehicle nodes, protected by **Differential Privacy** (Gaussian mechanism, ε=20, C=1.1, δ=1e-5).
 
 ---
 
@@ -127,25 +127,20 @@ After launch, note the **private IPv4 addresses** for all 6 instances.
 
 ### 1.5 Update Instance IPs in Scripts
 
-Edit the following files and replace the IPs with your actual private IPv4 addresses:
+Edit **one file only** — `fleet_ips.sh` — with your actual private IPv4 addresses. All scripts source it automatically.
 
-```
-fleet_deployment.sh   → CORE_IPS
-network_provision.sh  → CORE_IPS
-start_fleet.sh        → CORE_IPS
-clean_fleet.sh        → CORE_IPS
-monitor_fleet.sh      → CORE_IPS
-jobs_gen.sh           → CORE_IPS
-deply_data.sh         → CORE_IPS 
+```bash
+# fleet_ips.sh (already in the repo root)
+CORE_IPS=(
+    "<SITE1_PRIVATE_IP>"    # site-1
+    "<SITE2_PRIVATE_IP>"    # site-2
+    "<SITE3_PRIVATE_IP>"    # site-3
+    "<SITE4_PRIVATE_IP>"    # site-4
+    "<SITE5_PRIVATE_IP>"    # site-5
+)
 ```
 
-Current configured IPs (update these):
-- Master server: `172.31.33.187`
-- site-1: `172.31.71.9`
-- site-2: `172.31.67.199`
-- site-3: `172.31.76.174`
-- site-4: `172.31.77.237`
-- site-5: `172.31.64.105`
+Replace each `<SITE_N_PRIVATE_IP>` with the **private IPv4** shown in the AWS Console for each client instance. The master server IP is auto-detected from `hostname -I` when scripts run on the master node.
 
 ### 1.6 Verify Connectivity
 
@@ -291,7 +286,7 @@ This:
 ### Step 7 — Generate and Deploy Job Configuration
 
 ```bash
-DP_EPSILON=80 SEED=42 bash jobs_gen.sh ./data
+DP_EPSILON=20 DP_CLIP_BOUND=1.1 SEED=42 bash jobs_gen.sh ./data
 ```
 
 This:
@@ -304,9 +299,9 @@ This:
 
 | Parameter     | Value   | Description                      |
 |---------------|---------|----------------------------------|
-| `DP_EPSILON`  | `80`    | Privacy budget ε (higher = less noise) |
+| `DP_EPSILON`  | `20`    | Privacy budget ε — selected operating point (moderate-to-strong privacy, ~7.4 pp F1 cost vs no-DP) |
 | `DP_DELTA`    | `1e-5`  | Failure probability δ            |
-| `DP_CLIP_BOUND` | `5.0` | Leaf value clipping bound C      |
+| `DP_CLIP_BOUND` | `1.1` | Leaf value clipping bound C — empirically verified: all leaf values fall within [-1.01, 1.01] |
 | `SEED`        | `42`    | Random seed for XGBoost + DP noise |
 
 To disable DP: `SEED=42 bash jobs_gen.sh ./data` (omit `DP_EPSILON`)
@@ -459,7 +454,7 @@ bash data_split_gen.sh ./data
 bash network_provision.sh
 
 # 7. Generate + deploy job config
-DP_EPSILON=80 SEED=42 bash jobs_gen.sh ./data
+DP_EPSILON=20 DP_CLIP_BOUND=1.1 SEED=42 bash jobs_gen.sh ./data
 
 # 8. Start FL server
 bash workspace/iov_securefl_network/prod_00/server/startup/start.sh
@@ -503,7 +498,7 @@ Server and clients stay running across all seeds — no need to restart between 
 ### Seeds Used
 
 ```
-42  123  456  789  1000  314  7  99  1234  2000
+42  123  456  789  1000  1542  9  342  691  2000
 ```
 
 ### Per-Seed Loop
@@ -518,9 +513,9 @@ SEED=42 bash run_seed_sweep.sh
 
 This runs three sub-steps automatically:
 ```
-[1/3] SEED=42 bash data_split_gen.sh ./data   ← new train/test signature split
-[2/3] bash deploy_data.sh                      ← push new CSVs to all 5 clients
-[3/3] DP_EPSILON=80 SEED=42 bash jobs_gen.sh  ← generate + deploy NVFlare job config
+[1/3] SEED=42 bash data_split_gen.sh ./data              ← new train/test signature split
+[2/3] bash deploy_data.sh                                ← push new CSVs to all 5 clients
+[3/3] DP_EPSILON=20 DP_CLIP_BOUND=1.1 SEED=42 bash jobs_gen.sh  ← generate + deploy NVFlare job config
 ```
 
 **Step 2 — Submit the job (admin console):**
@@ -563,7 +558,7 @@ Appends accuracy, LogLoss, Macro F1, and per-class metrics to `randomSEED_report
 ### Full 10-Seed Reference
 
 ```bash
-for SEED in 42 123 456 789 1000 314 7 99 1234 2000; do
+for SEED in 42 123 456 789 1000 1542 9 342 691 2000; do
     echo "=== Preparing SEED=${SEED} ==="
     SEED=${SEED} bash run_seed_sweep.sh
     echo "Submit job in admin console, wait for completion, then press ENTER..."
@@ -602,7 +597,7 @@ Two separate α values are used — one for the majority class, one for attack c
 
 | Class type    | α value | Effect |
 |---------------|---------|--------|
-| BENIGN        | `2.0`   | Roughly balanced across sites — prevents pathological splits where a site gets almost no normal traffic |
+| BENIGN        | `15.0`  | Near-uniform across sites — keeps normal traffic stable so heterogeneity is isolated to attack classes only |
 | Attack classes | `0.5`  | Heterogeneous — sites specialise in different attack subsets; some sites intentionally receive **zero samples** of certain attack classes |
 
 ### Why Different α Values?
@@ -612,7 +607,7 @@ to get as few as 16 rows of normal traffic, making local training numerically un
 Using a high α (2.0) keeps BENIGN roughly balanced while still introducing natural variation.
 
 Attack classes are rare and domain-specific (RPM tampering vs. GAS injection vs. DOS).
-A low α (0.5) reflects the realistic scenario where a vehicle node only ever sees a subset
+A low α (0.5) for attacks reflects the realistic scenario where a vehicle node only ever sees a subset
 of attack types — forcing the federation to learn globally what no single node knows locally.
 This is the core motivation for federated learning in this domain.
 
@@ -632,8 +627,8 @@ Signature columns: ID, DATA_0, DATA_1, DATA_2, DATA_3, DATA_4, DATA_5, DATA_6, D
 ```bash
 bash data_split_gen.sh ./data
 # Internally calls:
-#   --alpha_benign 2.0   (BENIGN class concentration)
-#   --alpha_attack 0.5   (all attack classes concentration)
+#   --alpha_benign 15.0  (BENIGN class concentration — near-uniform)
+#   --alpha_attack 0.5   (attack classes concentration — heterogeneous)
 #   --seed 42            (reproducibility)
 ```
 
@@ -645,7 +640,7 @@ python3 utils/prepare_data_split.py \
     --site_num 5 \
     --out_path ./data/IoV/data_splits \
     --processed_dir ./data/processed \
-    --alpha_benign 2.0 \
+    --alpha_benign 15.0 \
     --alpha_attack 0.5 \
     --seed 42
 ```
@@ -653,7 +648,7 @@ python3 utils/prepare_data_split.py \
 The script prints a distribution table like:
 
 ```
-Non-IID split  (BENIGN α=2.0, attack α=0.5)
+Non-IID split  (BENIGN α=15.0, attack α=0.5)
 Site          BENIGN             DOS             GAS    ...   Total   Benign%   Missing attack classes
 ------------------------------------------------------------------------------------------------------
 site-1         12043               8               0    ...   12102    99.5%    ['GAS', 'SPEED']
@@ -698,9 +693,10 @@ Gaussian mechanism applied to XGBoost leaf values after local training:
 
 | Parameter | Value  |
 |-----------|--------|
-| ε (epsilon) | 80.0 |
+| ε (epsilon) | 20.0 |
 | δ (delta)   | 1e-5 |
-| C (clip bound) | 5.0 |
+| C (clip bound) | 1.1 |
+| σ (noise std) | 0.267 |
 
 Noise is applied per-leaf: each leaf value is clipped to `[-C, C]` then Gaussian noise `N(0, σ²)` is added before the model is sent to the aggregator.
 
@@ -793,7 +789,7 @@ echo "172.31.33.187 server" | sudo tee -a /etc/hosts
 ### Job fails at Stage 2 (`EXECUTION_EXCEPTION` on `train_outer`)
 This means the wrong `iov_executor.py` was deployed (simulator-mode version with `import os`). Re-run:
 ```bash
-DP_EPSILON=80 SEED=42 bash jobs_gen.sh ./data
+DP_EPSILON=20 DP_CLIP_BOUND=1.1 SEED=42 bash jobs_gen.sh ./data
 ```
 `jobs_gen.sh` always writes the correct executor to the transfer directory regardless of source file state.
 

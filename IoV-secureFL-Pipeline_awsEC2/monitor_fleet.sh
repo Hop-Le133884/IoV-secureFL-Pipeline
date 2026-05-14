@@ -4,9 +4,8 @@
 #   ./monitor_fleet.sh live     → tail site-1 live (Ctrl+C to stop)
 #   ./monitor_fleet.sh live 3   → tail site-3 live
 
-KEY=ec2Key/iov-dp-key.pem
-
-CORE_IPS=("172.31.0.72" "172.31.0.229" "172.31.0.147" "172.31.0.135" "172.31.0.246")
+source "$(dirname "$0")/fleet_ips.sh"
+KEY="${SSH_KEY}"
 
 if [[ "${1}" == "live" ]]; then
     SITE_NUM="${2:-1}"

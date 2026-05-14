@@ -5,11 +5,8 @@
 #
 # Usage:  bash deploy_data.sh
 
-CORE_IPS=("172.31.0.13" "172.31.0.31" "172.31.0.198" "172.31.0.56" "172.31.0.102")
-
 REPO_ROOT="$(realpath "$(dirname "$0")")"
-SSH_KEY="${REPO_ROOT}/ec2Key/iov-dp-key.pem"
-SSH_OPTS="-i ${SSH_KEY} -o StrictHostKeyChecking=no"
+source "${REPO_ROOT}/fleet_ips.sh"
 
 echo "Deploying updated training CSVs to fleet..."
 SITE_NUM=1

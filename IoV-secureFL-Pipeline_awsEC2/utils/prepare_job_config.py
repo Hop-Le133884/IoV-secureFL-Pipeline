@@ -20,7 +20,7 @@ def job_config_args_parser():
     #parser.add_argument("--nthread", type=int, default=4, help="nthread for xgboost")
     parser.add_argument("--dp_epsilon", type=float, default=None, help="DP privacy budget ε (None = no DP)")
     parser.add_argument("--dp_delta", type=float, default=1e-5, help="DP failure probability δ")
-    parser.add_argument("--dp_clip_bound", type=float, default=5.0, help="Leaf value clipping bound C (L∞ sensitivity)")
+    parser.add_argument("--dp_clip_bound", type=float, default=1.1, help="Leaf value clipping bound C (L∞ sensitivity)")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for XGBoost training and DP noise")
     parser.add_argument("--job_name", type=str, default=None, help="Override auto-generated job name")
     return parser
