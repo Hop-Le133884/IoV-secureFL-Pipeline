@@ -28,7 +28,8 @@ class DoubleRFExecutor(Executor):
             dp_delta:       DP failure probability δ (default 1e-5).
             dp_clip_bound:  Leaf value clipping bound C before noise injection.
                             Acts as the L∞ sensitivity of the output.
-                            Recommended: 3.0 for Stage 1 (binary), 5.0 for Stage 2 (6-class).
+                            Empirically verified: both Stage 1 and Stage 2 leaf values fall
+                            within [-1.01, 1.01], so C=1.1 covers 100% of leaves with margin.
             **kwargs:       XGBoost hyperparameters forwarded from the job config.
         """
         super().__init__()

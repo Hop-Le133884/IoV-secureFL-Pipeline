@@ -28,3 +28,6 @@ uv.lock
 #IoV-secureFL-Pipeline_awsEC2S3/ec2Key/*.pem
 IoV-secureFL-Pipeline_awsEC2/ec2Key/iov-dp-key.pem
 reproducing_bug1.py
+reports/research_paper_draft.md
+reports/main.tex
+reports/references.bib

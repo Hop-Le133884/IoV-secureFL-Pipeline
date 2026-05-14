@@ -28,7 +28,7 @@ SEEDS_DEFAULT = [42] # to testing the DP, need seed consistency
 # for record the honest avg f1 score need seeds "42, 67, 123, 212, 334, 456,789, 865, 1000, 1337"
 
 
-def sigma_from_epsilon(epsilon, delta=1e-5, clip=5.0):
+def sigma_from_epsilon(epsilon, delta=1e-5, clip=1.1):
     if epsilon == float("inf"):
         return 0.0
     return clip * math.sqrt(2.0 * math.log(1.25 / delta)) / epsilon

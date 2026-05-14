@@ -9,14 +9,14 @@ import numpy as np
 from pathlib import Path
 
 HERE   = Path(__file__).parent
-CSV    = HERE / "../DP_SEED_report/seeds_comparing.csv"
-OUTPNG = HERE / "../DP_SEED_report/seeds_comparing.png"
+CSV    = HERE / "../DP_SEED_report/seeds_comparing_v1.csv"
+OUTPNG = HERE / "../DP_SEED_report/seeds_comparing_v1.png"
 
 # ── Load ──────────────────────────────────────────────────────────────────────
 df = pd.read_csv(CSV)
 row = df.iloc[0]
 
-SEEDS = [42, 123, 456, 789, 1234, 2025, 515, 197, 314, 1000]
+SEEDS = [42, 123, 456, 789, 1000, 1542, 9, 342, 691, 2000]
 f1s   = [row[f"f1_seed_{s}"]  for s in SEEDS]
 accs  = [row[f"acc_seed_{s}"] for s in SEEDS]
 

@@ -69,19 +69,16 @@ def make_plot(rows, out_path):
                 fmt="s--", color="tomato", linewidth=1.5, markersize=5,
                 capsize=4, label="Accuracy (mean ± std)")
 
-    for eps, f1 in zip(epsilons, mean_f1s):
-        ax.annotate(f"ε={eps}", (eps, f1),
-                    textcoords="offset points", xytext=(0, 9),
-                    ha="center", fontsize=8, color="steelblue")
-
     ax.set_xscale("log")
+    ax.set_xticks(epsilons)
+    ax.set_xticklabels([f"ε={int(e)}" for e in epsilons],
+                       rotation=45, ha="right", fontsize=8)
     ax.set_xlabel("Privacy Budget ε  (← stronger privacy | weaker privacy →)", fontsize=10)
     ax.set_ylabel("Score (%)", fontsize=10)
     ax.set_title("Utility vs Privacy Budget (ε)", fontsize=11)
     ax.set_ylim(-5, 110)
     ax.legend(fontsize=8)
     ax.grid(True, which="both", linestyle=":", alpha=0.5)
-    ax.xaxis.set_major_formatter(ticker.ScalarFormatter())
 
     # ── Right: Mean F1 vs σ ──────────────────────────────────────────────────
     ax2 = axes[1]
@@ -93,11 +90,11 @@ def make_plot(rows, out_path):
                  fmt="o-", color="steelblue", linewidth=2, markersize=7,
                  capsize=4, label="Macro F1 (mean ± std)")
 
-    for sigma, eps, f1 in zip(sigmas, epsilons, mean_f1s):
-        ax2.annotate(f"ε={eps}\nσ={sigma:.2f}", (sigma, f1),
-                     textcoords="offset points", xytext=(6, 0),
-                     fontsize=7.5, color="steelblue", va="center")
-
+    ax2.set_xticks(sigmas)
+    ax2.set_xticklabels(
+        [f"σ={s:.3f}" for s in sigmas],
+        rotation=45, ha="right", fontsize=8
+    )
     ax2.set_xlabel("Noise σ (Gaussian std applied to leaf values)", fontsize=10)
     ax2.set_ylabel("Macro F1 (%)", fontsize=10)
     ax2.set_title("Utility vs Noise Level (σ)", fontsize=11)
@@ -105,7 +102,7 @@ def make_plot(rows, out_path):
     ax2.legend(fontsize=8)
     ax2.grid(True, linestyle=":", alpha=0.5)
 
-    fig.tight_layout()
+    fig.tight_layout(pad=2.0)
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
     fig.savefig(out_path, dpi=150, bbox_inches="tight")
     print(f"Plot saved → {out_path}")
